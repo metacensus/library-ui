@@ -1,0 +1,47 @@
+{
+  "name": "@metacensus/library-ui",
+  "version": "0.0.0",
+  "description": "MetaCensus brand layer and UI tools for React.",
+  "license": "AGPL-3.0-only AND LicenseRef-MetaCensus-Marks",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/metacensus/library-ui.git"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=24"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./marks/*.svg": "./marks/*.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "marks",
+    "LICENSE",
+    "TRADEMARKS.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format:check": "prettier --check ."
+  },
+  "peerDependencies": {
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@types/react": "^18.3.3",
+    "eslint": "^9.39.0",
+    "prettier": "^3.6.0",
+    "react": "^18.3.1",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.46.0"
+  }
+}

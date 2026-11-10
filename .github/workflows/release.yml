@@ -1,0 +1,67 @@
+name: Release
+
+# A semver tag publishes @metacensus/library-ui to npm.
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify
+    uses: ./.github/workflows/ci.yml
+
+  publish-npm:
+    name: Publish to npm
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      # npm trusted publishing (OIDC): no NPM_TOKEN exists or is needed.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Re-validate the tag as semver
+        run: |
+          [[ "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+        shell: bash
+
+      - name: Install
+        # --ignore-scripts: this job holds id-token: write.
+        run: npm ci --ignore-scripts
+
+      - name: Set the package version from the tag
+        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
+
+      - run: npm run build
+
+      - name: Publish
+        # Trusted publishing needs npm >= 11.5.1.
+        run: |
+          npm --version
+          npm publish --provenance --access public
+
+  github-release:
+    name: GitHub release
+    needs: publish-npm
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --generate-notes --verify-tag
