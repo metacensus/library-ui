@@ -63,12 +63,25 @@ jobs:
             exit 1
           fi
 
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: make deps
+      - run: make test
+
   # The only required check from this workflow: a skipped job reports as passing,
   # so this fails unless every check succeeded.
   ci:
     name: CI
     if: always()
-    needs: [lint, typecheck, build]
+    needs: [lint, typecheck, build, test]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -76,4 +89,5 @@ jobs:
         run: |
           [ "${{ needs.lint.result }}" = success ] &&
           [ "${{ needs.typecheck.result }}" = success ] &&
-          [ "${{ needs.build.result }}" = success ]
+          [ "${{ needs.build.result }}" = success ] &&
+          [ "${{ needs.test.result }}" = success ]

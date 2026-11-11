@@ -2,7 +2,7 @@
 
 MetaCensus's brand layer and a small set of UI tools, as one ESM React package (React 18 peer).
 
-The first release's contents are tracked in this repository's issues. So far it ships the marks and the brand tokens.
+The first release's contents are tracked in this repository's issues. So far it ships the marks, the brand tokens and the components.
 
 ## Use
 
@@ -11,6 +11,37 @@ npm install @metacensus/library-ui
 ```
 
 Marks are importable as `@metacensus/library-ui/marks/mark.svg` and its siblings.
+
+## Components
+
+```css
+@import '@metacensus/library-ui/fonts.css';
+@import '@metacensus/library-ui/tokens.css';
+@import '@metacensus/library-ui/styles.css';
+```
+
+`styles.css` is plain CSS, every class `mc-` prefixed and none scoped to a site, reading the roles in `tokens.css`. No Tailwind is needed. Set `font-family: var(--mc-font-sans)` on your page.
+
+Components render on the server: no router, auth or API client, and no browser global while rendering. In Astro, add `@astrojs/react`; the marks and chrome render at build with no `client:` directive and ship no JS. Only `ThemeToggle` needs one, as `client:visible`.
+
+- Marks: `MetaCensusMark`, `MetaCensusLockup`, `MetaCensusArrow`, `LogoArrowMorph`, and the shared geometry.
+- Chrome: `Header` (`nav` and `actions` slots), `Footer` (`tagline`; link columns as children), `Nav` (`links`).
+- Tools: `cn`, `Button`, `Notice`, `Chip`, the form kit (`Field`, `Label`, `Input`, `Textarea`, `Select`, `Checkbox`, `RadioGroup`, `FieldError`), `useTheme`, `ThemeToggle`, `themeScript`.
+
+- Marks take `variant`: `auto` (the default: solid on light, reversed on dark), `solid` or `reversed`, and `gradient` on the lockup, which needs a white or very light ground. Mark usage is in [TRADEMARKS.md](TRADEMARKS.md).
+- `LogoArrowMorph` is a pure function of `progress`, 0 the mark and 1 the arrow; whatever places it owns the timing. Keep it horizontal.
+- `Nav`'s mobile menu is a checkbox and CSS, so it works without JS.
+- `Button` and `Notice` follow the guidelines' illustrated Actions and Callout patterns. Those patterns do not bind yet: the guidelines have yet to state their shape.
+- Theme: inline `themeScript` in `<head>` so a stored override is on `<html>` before first paint. `useTheme` and `ThemeToggle` read and set it: `system` (the OS), `light` or `dark`.
+
+```astro
+---
+import { themeScript } from '@metacensus/library-ui'
+---
+<head>
+  <script is:inline set:html={themeScript} />
+</head>
+```
 
 ## Brand tokens
 
