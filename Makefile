@@ -1,4 +1,4 @@
-.PHONY: help deps lint typecheck format build check release
+.PHONY: help deps lint typecheck format build test check release
 .DEFAULT_GOAL := help
 
 help: ## — list the targets
@@ -19,7 +19,10 @@ format: ## — prettier check
 build: ## — compile to dist
 	npm run -s build
 
-check: lint typecheck format build ## — everything CI runs
+test: build ## — render the built package on the server
+	npm test
+
+check: lint typecheck format test ## — everything CI runs
 
 release: ## — tag the next semver and push it: make release TYPE=patch|minor|major
 	@./scripts/release.sh "$(TYPE)"

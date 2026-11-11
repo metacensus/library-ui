@@ -21,6 +21,7 @@
     },
     "./tokens.css": "./src/css/tokens.css",
     "./fonts.css": "./src/css/fonts.css",
+    "./styles.css": "./src/css/styles.css",
     "./theme.css": "./src/css/theme.css",
     "./marks/*.svg": "./marks/*.svg",
     "./package.json": "./package.json"
@@ -36,7 +37,8 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test": "node --test"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0"
@@ -50,6 +52,7 @@
     "eslint": "^9.39.0",
     "prettier": "^3.6.0",
     "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.46.0"
   }
