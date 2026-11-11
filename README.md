@@ -60,7 +60,7 @@ A step is `--mc-<family>-<step>`, as `--mc-purple-bold`. `--mc-white` and `--mc-
 | `--mc-alert-border`  | red bold    | red bold                    |
 | `--mc-signal`        | red mid     | red mid                     |
 
-`--mc-fill-solid` sits under white text. `--mc-signal` is Coral: one use per surface, never in the logo, headings, chrome or an action.
+`--mc-fill-solid` sits under white text. `--mc-signal` is Coral: one use per surface, never in the logo, headings, chrome or an action. On dark, `--mc-alert-ink` and `--mc-tint-red-ink` resolve to Coral too, but are not the signal.
 
 ### Tint fills
 

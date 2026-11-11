@@ -8,7 +8,7 @@
     "url": "git+https://github.com/metacensus/library-ui.git"
   },
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": ["*.css"],
   "engines": {
     "node": ">=24"
   },
