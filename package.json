@@ -17,12 +17,16 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./tokens.css": "./src/css/tokens.css",
+    "./fonts.css": "./src/css/fonts.css",
+    "./theme.css": "./src/css/theme.css",
     "./marks/*.svg": "./marks/*.svg",
     "./package.json": "./package.json"
   },
   "files": [
     "dist",
     "marks",
+    "src/css",
     "LICENSE",
     "TRADEMARKS.md"
   ],
@@ -31,6 +35,9 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.3.0"
   },
   "peerDependencies": {
     "react": "^18.3.1"

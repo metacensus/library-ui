@@ -1,0 +1,30 @@
+/* Optional: the roles as Tailwind 4 theme values, as `bg-mc-card`, `text-mc-ink`.
+   Import after tokens.css. `inline` keeps the utilities following the scheme. */
+@theme inline {
+  --color-mc-ground: var(--mc-ground);
+  --color-mc-card: var(--mc-card);
+  --color-mc-surface: var(--mc-surface);
+  --color-mc-hairline: var(--mc-hairline);
+  --color-mc-ink: var(--mc-ink);
+  --color-mc-ink-secondary: var(--mc-ink-secondary);
+  --color-mc-ink-accent: var(--mc-ink-accent);
+  --color-mc-line-accent: var(--mc-line-accent);
+  --color-mc-fill-solid: var(--mc-fill-solid);
+  --color-mc-fill-emphasis: var(--mc-fill-emphasis);
+  --color-mc-action: var(--mc-action);
+  --color-mc-alert-fill: var(--mc-alert-fill);
+  --color-mc-alert-ink: var(--mc-alert-ink);
+  --color-mc-alert-border: var(--mc-alert-border);
+  --color-mc-signal: var(--mc-signal);
+  --color-mc-tint-purple-fill: var(--mc-tint-purple-fill);
+  --color-mc-tint-purple-ink: var(--mc-tint-purple-ink);
+  --color-mc-tint-grey-fill: var(--mc-tint-grey-fill);
+  --color-mc-tint-grey-ink: var(--mc-tint-grey-ink);
+  --color-mc-tint-red-fill: var(--mc-tint-red-fill);
+  --color-mc-tint-red-ink: var(--mc-tint-red-ink);
+  --color-mc-tint-blue-fill: var(--mc-tint-blue-fill);
+  --color-mc-tint-blue-ink: var(--mc-tint-blue-ink);
+  --font-sans: var(--mc-font-sans);
+  --radius-mc: var(--mc-radius);
+  --shadow-mc: var(--mc-shadow);
+}
