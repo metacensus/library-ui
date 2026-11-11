@@ -1,0 +1,106 @@
+/* MetaCensus brand tokens: the palette by name, the roles over it, the shapes.
+   Roles resolve light or dark by `color-scheme`: the OS setting by default,
+   `.dark` or `.light` on any element to override its subtree. */
+
+:root {
+  color-scheme: light dark;
+
+  /* Palette. Each family runs bold, mid, tint. */
+  --mc-purple-bold: #3b0e75; /* Deep Royal Purple */
+  --mc-purple-mid: #915eda; /* Amethyst Glow */
+  --mc-purple-tint: #d0b5e6; /* Soft Lavender */
+  --mc-grey-bold: #444a5a; /* Charcoal Slate */
+  --mc-grey-mid: #8a90a2; /* Slate Mist */
+  --mc-grey-tint: #e8e8ec; /* Cloud Grey */
+  --mc-red-bold: #91042a; /* Deep Garnet */
+  --mc-red-mid: #ff6f5e; /* Coral */
+  --mc-red-tint: #ffe5e2; /* Coral Wash */
+  --mc-blue-bold: #0a4a78; /* Deep Ocean */
+  --mc-blue-mid: #3d9bd1; /* Azure */
+  --mc-blue-tint: #dcedf7; /* Azure Wash */
+  /* Print only: named, and no role uses them. */
+  --mc-gold-bold: #c28e2f; /* Ochre Gold */
+  --mc-gold-mid: #e0d3a8; /* Champagne Sand */
+  --mc-gold-tint: #f9f7ef; /* Sand Wash */
+  --mc-white: #fff;
+  --mc-night: #121318; /* the dark ground */
+
+  /* Roles. */
+  --mc-ground: light-dark(var(--mc-white), var(--mc-night));
+  --mc-card: light-dark(
+    var(--mc-white),
+    color-mix(in srgb, var(--mc-grey-bold) 25%, var(--mc-ground))
+  );
+  --mc-surface: light-dark(
+    var(--mc-grey-tint),
+    color-mix(in srgb, var(--mc-grey-bold) 40%, var(--mc-ground))
+  );
+  --mc-hairline: light-dark(
+    var(--mc-grey-tint),
+    color-mix(in srgb, var(--mc-grey-bold) 55%, var(--mc-ground))
+  );
+  --mc-ink: light-dark(var(--mc-grey-bold), var(--mc-grey-tint));
+  --mc-ink-secondary: var(--mc-grey-mid);
+  --mc-ink-accent: light-dark(var(--mc-purple-bold), var(--mc-purple-tint));
+  --mc-line-accent: var(--mc-purple-mid);
+  --mc-fill-solid: var(--mc-purple-bold); /* under white text */
+  --mc-fill-emphasis: light-dark(
+    var(--mc-purple-tint),
+    color-mix(in srgb, var(--mc-purple-bold) 60%, var(--mc-ground))
+  );
+  --mc-action: var(--mc-red-bold);
+  --mc-alert-fill: light-dark(
+    var(--mc-red-tint),
+    color-mix(in srgb, var(--mc-red-bold) 40%, var(--mc-ground))
+  );
+  --mc-alert-ink: light-dark(var(--mc-red-bold), var(--mc-red-mid));
+  --mc-alert-border: var(--mc-red-bold);
+  --mc-signal: var(--mc-red-mid); /* one per surface */
+
+  /* Tint-fill pairs: fill, and ink with border. Dark inverts each family. */
+  --mc-tint-purple-fill: light-dark(
+    var(--mc-purple-tint),
+    color-mix(in srgb, var(--mc-purple-bold) 18%, var(--mc-ground))
+  );
+  --mc-tint-purple-ink: light-dark(var(--mc-purple-bold), var(--mc-purple-mid));
+  --mc-tint-grey-fill: light-dark(
+    var(--mc-grey-tint),
+    color-mix(in srgb, var(--mc-grey-bold) 18%, var(--mc-ground))
+  );
+  --mc-tint-grey-ink: light-dark(var(--mc-grey-bold), var(--mc-grey-mid));
+  --mc-tint-red-fill: light-dark(
+    var(--mc-red-tint),
+    color-mix(in srgb, var(--mc-red-bold) 18%, var(--mc-ground))
+  );
+  --mc-tint-red-ink: light-dark(var(--mc-red-bold), var(--mc-red-mid));
+  --mc-tint-blue-fill: light-dark(
+    var(--mc-blue-tint),
+    color-mix(in srgb, var(--mc-blue-bold) 18%, var(--mc-ground))
+  );
+  --mc-tint-blue-ink: light-dark(var(--mc-blue-bold), var(--mc-blue-mid));
+
+  /* Gradients: two stops, never a third. */
+  --mc-gradient-hero: linear-gradient(
+    to right,
+    var(--mc-purple-bold),
+    var(--mc-purple-mid)
+  );
+  --mc-gradient-lockup: linear-gradient(to right, #37128a, #ab82ec);
+
+  /* Type: the face only, no scale. */
+  --mc-font-sans:
+    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
+
+  /* Shape: provisional, from the public site. */
+  --mc-radius: 6px;
+  --mc-shadow: 5px 5px 0 color-mix(in srgb, var(--mc-ink) 90%, transparent);
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+.light {
+  color-scheme: light;
+}
