@@ -175,6 +175,13 @@
 .mc-button-primary:hover:not(:disabled) {
   background: color-mix(in srgb, var(--mc-action) 85%, black);
 }
+.mc-button-danger {
+  background: var(--mc-action-risk);
+  color: var(--mc-white);
+}
+.mc-button-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--mc-action-risk) 85%, black);
+}
 .mc-button-secondary {
   border-color: var(--mc-ink);
   background: transparent;

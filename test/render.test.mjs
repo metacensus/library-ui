@@ -81,6 +81,7 @@ test('the tools render on the server', () => {
       h(ui.Notice, { title: 'Heads up' }, 'Body'),
       h(ui.Chip, { family: 'blue' }, 'Chip'),
       h(ui.Button, { variant: 'secondary' }, 'Save'),
+      h(ui.Button, { variant: 'danger' }, 'Delete'),
       h(ui.ThemeToggle),
     ),
   )
@@ -92,6 +93,7 @@ test('the tools render on the server', () => {
     'mc-notice',
     'mc-chip-blue',
     'mc-button-secondary',
+    'mc-button-danger',
     'mc-theme-toggle',
   ])
     assert.ok(html.includes(c), c)
@@ -176,4 +178,34 @@ test('styles.css prefixes every class and scopes nothing to a site', () => {
   assert.ok(classes.length > 0)
   for (const c of classes) assert.match(c, /^\.mc-/)
   assert.doesNotMatch(css, /marketing-site/)
+})
+
+test('a primary Button fills Purple and a danger Button Garnet', () => {
+  const tokens = read('../src/css/tokens.css')
+  const styles = read('../src/css/styles.css')
+  // Follows `var(--x)` chains to a hex colour; both roles are constant in
+  // both colour schemes, so a single value resolves each.
+  const resolve = (value) => {
+    const ref = /^var\((--[\w-]+)\)$/.exec(value)
+    if (!ref) return value
+    return resolve(new RegExp(`${ref[1]}:\\s*([^;]+?);`).exec(tokens)[1])
+  }
+  const background = (variant) => {
+    const rule = new RegExp(`\\.mc-button-${variant} \\{([^}]*)\\}`).exec(
+      styles,
+    )
+    return resolve(/background:\s*([^;]+);/.exec(rule[1])[1]).toUpperCase()
+  }
+  const html = renderToString(
+    h(
+      'div',
+      null,
+      h(ui.Button, null, 'P'),
+      h(ui.Button, { variant: 'danger' }, 'D'),
+    ),
+  )
+  assert.ok(html.includes('mc-button-primary'))
+  assert.ok(html.includes('mc-button-danger'))
+  assert.equal(background('primary'), '#3B0E75')
+  assert.equal(background('danger'), '#91042A')
 })

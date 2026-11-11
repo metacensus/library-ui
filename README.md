@@ -31,6 +31,7 @@ Components render on the server: no router, auth or API client, and no browser g
 - Marks take `variant`: `auto` (the default: solid on light, reversed on dark), `solid` or `reversed`, and `gradient` on the lockup, which needs a white or very light ground. Mark usage is in [TRADEMARKS.md](TRADEMARKS.md).
 - `LogoArrowMorph` is a pure function of `progress`, 0 the mark and 1 the arrow; whatever places it owns the timing. Keep it horizontal.
 - `Nav`'s mobile menu is a checkbox and CSS, so it works without JS.
+- `Button` takes `variant`: `primary` (the default; one per view), `secondary`, `text` or `danger`. A solid Garnet fill marks only a risky action: one that destroys, discards, revokes or cannot be undone. A vote, a filter or a choice between options is not risky.
 - `Button` and `Notice` follow the guidelines' illustrated Actions and Callout patterns. Those patterns do not bind yet: the guidelines have yet to state their shape.
 - Theme: inline `themeScript` in `<head>` so a stored override is on `<html>` before first paint. `useTheme` and `ThemeToggle` read and set it: `system` (the OS), `light` or `dark`.
 
@@ -45,6 +46,7 @@ import { Header, Nav, Button, themeScript } from '@metacensus/library-ui'
   <Nav slot="nav" links={[{ href: '/research', label: 'Research' }]} />
   <Button slot="actions" href="/join">Join</Button>
 </Header>
+<Button variant="danger">Delete account</Button>
 ```
 
 In `.astro` files, pass `Header`'s `nav` and `actions` as named slots; JSX props there fail the build.
@@ -91,13 +93,14 @@ A step is `--mc-<family>-<step>`, as `--mc-purple-bold`. `--mc-white` and `--mc-
 | `--mc-line-accent`   | purple mid  | purple mid                  |
 | `--mc-fill-solid`    | purple bold | purple bold                 |
 | `--mc-fill-emphasis` | purple tint | purple bold into the ground |
-| `--mc-action`        | red bold    | red bold                    |
+| `--mc-action`        | purple bold | purple bold                 |
+| `--mc-action-risk`   | red bold    | red bold                    |
 | `--mc-alert-fill`    | red tint    | red bold into the ground    |
 | `--mc-alert-ink`     | red bold    | red mid                     |
 | `--mc-alert-border`  | red bold    | red bold                    |
 | `--mc-signal`        | red mid     | red mid                     |
 
-`--mc-fill-solid` sits under white text. `--mc-signal` is Coral: one use per surface, never in the logo, headings, chrome or an action. On dark, `--mc-alert-ink` and `--mc-tint-red-ink` resolve to Coral too, but are not the signal.
+`--mc-fill-solid`, `--mc-action` and `--mc-action-risk` sit under white text. `--mc-signal` is Coral: one use per surface, never in the logo, headings, chrome or an action. On dark, `--mc-alert-ink` and `--mc-tint-red-ink` resolve to Coral too, but are not the signal.
 
 ### Tint fills
 
