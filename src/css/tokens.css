@@ -49,7 +49,7 @@
     color-mix(in srgb, var(--mc-purple-bold) 60%, var(--mc-ground))
   );
   --mc-action: var(--mc-purple-bold);
-  --mc-action-risk: var(--mc-red-bold); /* under white text */
+  --mc-action-risk: var(--mc-red-bold);
   --mc-alert-fill: light-dark(
     var(--mc-red-tint),
     color-mix(in srgb, var(--mc-red-bold) 40%, var(--mc-ground))
