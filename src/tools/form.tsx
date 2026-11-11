@@ -18,13 +18,17 @@ const FieldContext = createContext<FieldState | null>(null)
 
 /** A control's id, `aria-describedby` and `aria-invalid`, from the Field around
  *  it unless set. */
-function useControl(props: { id?: string; 'aria-describedby'?: string }) {
+function useControl(props: {
+  id?: string
+  'aria-describedby'?: string
+  'aria-invalid'?: InputHTMLAttributes<HTMLInputElement>['aria-invalid']
+}) {
   const field = useContext(FieldContext)
   return {
     id: props.id ?? field?.id,
     'aria-describedby':
       props['aria-describedby'] ?? (field?.invalid ? field.errorId : undefined),
-    'aria-invalid': field?.invalid || undefined,
+    'aria-invalid': props['aria-invalid'] ?? (field?.invalid || undefined),
   }
 }
 

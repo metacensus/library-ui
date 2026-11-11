@@ -95,19 +95,13 @@ export function MetaCensusLockup({
   )
 }
 
-type StrokeProps = {
-  variant?: Variant
-  className?: string
-  title?: string
-}
-
 /** The arrow. Decorative unless given a `title`. It may be rotated to follow
  *  reading direction; nothing else of the brand may. */
 export function MetaCensusArrow({
   variant = 'auto',
   className,
   title,
-}: StrokeProps) {
+}: MarkProps) {
   return (
     <svg
       viewBox={ARROW_VIEWBOX}
@@ -135,7 +129,7 @@ export function LogoArrowMorph({
   variant = 'auto',
   className,
   title = 'Evidence becomes consensus',
-}: StrokeProps & { progress: number }) {
+}: MarkProps & { progress: number }) {
   const p = Math.min(1, Math.max(0, progress))
   return (
     <svg

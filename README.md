@@ -36,12 +36,18 @@ Components render on the server: no router, auth or API client, and no browser g
 
 ```astro
 ---
-import { themeScript } from '@metacensus/library-ui'
+import { Header, Nav, Button, themeScript } from '@metacensus/library-ui'
 ---
 <head>
   <script is:inline set:html={themeScript} />
 </head>
+<Header>
+  <Nav slot="nav" links={[{ href: '/research', label: 'Research' }]} />
+  <Button slot="actions" href="/join">Join</Button>
+</Header>
 ```
+
+In `.astro` files, pass `Header`'s `nav` and `actions` as named slots; JSX props there fail the build.
 
 ## Brand tokens
 

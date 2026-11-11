@@ -59,7 +59,7 @@ test('the nav disclosure is a checkbox its label controls', () => {
 })
 
 test('the tools render on the server', () => {
-  renderToString(
+  const html = renderToString(
     h(
       'form',
       null,
@@ -84,6 +84,17 @@ test('the tools render on the server', () => {
       h(ui.ThemeToggle),
     ),
   )
+  for (const c of [
+    'mc-field',
+    'mc-control',
+    'mc-choice',
+    'mc-radio-group',
+    'mc-notice',
+    'mc-chip-blue',
+    'mc-button-secondary',
+    'mc-theme-toggle',
+  ])
+    assert.ok(html.includes(c), c)
 })
 
 test('a Field wires its label, control and error together', () => {
