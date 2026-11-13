@@ -3,7 +3,7 @@ import { cn } from './cn.js'
 
 type NoticeProps = HTMLAttributes<HTMLDivElement> & {
   title?: ReactNode
-  tone?: 'alert' | 'info'
+  tone?: 'alert' | 'info' | 'success'
 }
 
 /** A callout: a tint fill at full width. The guidelines' Callout pattern
@@ -21,6 +21,7 @@ export function Notice({
       className={cn(
         'mc-notice',
         tone === 'info' && 'mc-notice-info',
+        tone === 'success' && 'mc-notice-success',
         className,
       )}
       {...props}
