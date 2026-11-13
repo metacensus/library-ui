@@ -40,7 +40,7 @@ Components render on the server: no router, auth or API client, and no browser g
 - `LogoArrowMorph` is a pure function of `progress`, 0 the mark and 1 the arrow; whatever places it owns the timing. Keep it horizontal.
 - `Nav`'s mobile menu is a checkbox and CSS, so it works without JS.
 - `Button` takes `variant`: `primary` (the default; one per view), `secondary`, `text`, `danger` or `inverse`. A solid Garnet fill marks only a risky action: one that destroys, discards, revokes or cannot be undone. A vote, a filter or a choice between options is not risky. `inverse` is a white fill for the call to action on a `--mc-fill-solid`, `--mc-gradient-hero` or `--mc-night` ground, where `primary` is the ground's own colour or nearly so. Use it on those grounds only: it reads the same in light and dark, and `secondary` inside `.dark` is its quieter sibling.
-- `Notice` takes `tone`: `alert` (the default, the Reds' tint) or `info` (the Blues'). It renders `role="note"`; pass `role="alert"` for an error. `tone` does not reach the DOM.
+- `Notice` takes `tone`: `alert` (the default, which reads the `--mc-alert-*` roles) or `info` (the blue tint). It renders `role="note"`; pass `role="alert"` for an error.
 - `Button` and `Notice` follow the guidelines' illustrated Actions and Callout patterns. Those patterns do not bind yet: the guidelines have yet to state their shape.
 - Theme: inline `themeScript` in `<head>` so a stored override is on `<html>` before first paint. `useTheme` and `ThemeToggle` read and set it: `system` (the OS), `light` or `dark`.
 
