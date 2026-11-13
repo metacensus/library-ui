@@ -229,6 +229,12 @@
     background: var(--mc-tint-blue-fill);
     color: var(--mc-tint-blue-ink);
   }
+  /* Success reads the accent ink: --mc-tint-purple-ink is 4.15:1 on the dark fill. */
+  .mc-notice-success {
+    border-color: var(--mc-tint-purple-ink);
+    background: var(--mc-tint-purple-fill);
+    color: var(--mc-ink-accent);
+  }
   .mc-notice > :last-child {
     margin-bottom: 0;
   }

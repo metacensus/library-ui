@@ -120,6 +120,9 @@ test('a Notice takes a tone: info adds its class and tone stays off the DOM', ()
   const info = renderToString(h(ui.Notice, { tone: 'info' }, 'Body'))
   assert.ok(info.includes('mc-notice mc-notice-info'))
   assert.ok(!info.includes('tone='))
+  const ok = renderToString(h(ui.Notice, { tone: 'success' }, 'Body'))
+  assert.ok(ok.includes('mc-notice mc-notice-success'))
+  assert.ok(!ok.includes('mc-notice-info'))
 })
 
 test('a Field wires its label, control and error together', () => {
@@ -395,6 +398,20 @@ test('the info Notice reads the blue tint pair, 4.5:1 in light and dark', () => 
   const ink = /(?<![-\w])color:\s*([^;]+);/.exec(rule)[1]
   assert.equal(fill, 'var(--mc-tint-blue-fill)')
   assert.equal(ink, 'var(--mc-tint-blue-ink)')
+  for (const dark of [false, true]) {
+    assert.ok(
+      contrast(resolve(ink, dark), resolve(fill, dark)) >= 4.5,
+      dark ? 'dark' : 'light',
+    )
+  }
+})
+
+test('the success Notice reads the purple tint fill and the accent ink, 4.5:1 in light and dark', () => {
+  const rule = /\.mc-notice-success \{([^}]*)\}/.exec(styles)[1]
+  const fill = /background:\s*([^;]+);/.exec(rule)[1]
+  const ink = /(?<![-\w])color:\s*([^;]+);/.exec(rule)[1]
+  assert.equal(fill, 'var(--mc-tint-purple-fill)')
+  assert.equal(ink, 'var(--mc-ink-accent)')
   for (const dark of [false, true]) {
     assert.ok(
       contrast(resolve(ink, dark), resolve(fill, dark)) >= 4.5,
