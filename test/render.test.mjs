@@ -54,6 +54,16 @@ test('marks and chrome render to static HTML with no script', () => {
   assert.match(html, /<footer/)
 })
 
+test('Footer renders a given brand in place of the default lockup', () => {
+  const lockup = /<svg[^>]*aria-label="MetaCensus"/
+  const given = renderToString(
+    h(ui.Footer, { brand: h('b', { id: 'mine' }, 'Mine') }),
+  )
+  assert.match(given, /<div class="mc-footer-brand"><b id="mine">Mine<\/b>/)
+  assert.doesNotMatch(given, lockup)
+  assert.match(renderToString(h(ui.Footer)), lockup)
+})
+
 test('the nav disclosure is a checkbox its label controls', () => {
   const html = renderToString(nav)
   const id = /<input id="([^"]+)" type="checkbox"/.exec(html)?.[1]
