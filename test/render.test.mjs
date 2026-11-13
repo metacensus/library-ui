@@ -114,6 +114,14 @@ test('the tools render on the server', () => {
     assert.ok(html.includes(c), c)
 })
 
+test('a Notice takes a tone: info adds its class and tone stays off the DOM', () => {
+  const plain = renderToString(h(ui.Notice, null, 'Body'))
+  assert.ok(!plain.includes('mc-notice-info'))
+  const info = renderToString(h(ui.Notice, { tone: 'info' }, 'Body'))
+  assert.ok(info.includes('mc-notice mc-notice-info'))
+  assert.ok(!info.includes('tone='))
+})
+
 test('a Field wires its label, control and error together', () => {
   const html = renderToString(
     h(ui.Field, { error: 'Bad' }, h(ui.Label, null, 'N'), h(ui.Input)),
@@ -362,6 +370,20 @@ test('buttons read the on-fill ink, which holds 4.5:1 on every fill it covers', 
   }
   for (const fill of ['fill-solid', 'action', 'action-risk']) {
     assert.ok(contrast(ink, resolve(`var(--mc-${fill})`)) >= 4.5, fill)
+  }
+})
+
+test('the info Notice reads the blue tint pair, 4.5:1 in light and dark', () => {
+  const rule = /\.mc-notice-info \{([^}]*)\}/.exec(styles)[1]
+  const fill = /background:\s*([^;]+);/.exec(rule)[1]
+  const ink = /(?<![-\w])color:\s*([^;]+);/.exec(rule)[1]
+  assert.equal(fill, 'var(--mc-tint-blue-fill)')
+  assert.equal(ink, 'var(--mc-tint-blue-ink)')
+  for (const dark of [false, true]) {
+    assert.ok(
+      contrast(resolve(ink, dark), resolve(fill, dark)) >= 4.5,
+      dark ? 'dark' : 'light',
+    )
   }
 })
 
