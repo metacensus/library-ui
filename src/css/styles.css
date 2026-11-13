@@ -224,6 +224,11 @@
     background: var(--mc-alert-fill);
     color: var(--mc-alert-ink);
   }
+  .mc-notice-info {
+    border-color: var(--mc-tint-blue-ink);
+    background: var(--mc-tint-blue-fill);
+    color: var(--mc-tint-blue-ink);
+  }
   .mc-notice > :last-child {
     margin-bottom: 0;
   }
