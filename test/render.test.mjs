@@ -310,3 +310,11 @@ test('a control borders with --mc-line-input, 3:1 on --mc-card in light and dark
     assert.ok(contrast(line, card) >= 3, dark ? 'dark' : 'light')
   }
 })
+
+test('the series role holds 3:1 on the card in light and dark', () => {
+  for (const dark of [false, true]) {
+    const series = resolve('var(--mc-series)', dark)
+    const card = resolve('var(--mc-card)', dark)
+    assert.ok(contrast(series, card) >= 3, dark ? 'dark' : 'light')
+  }
+})
