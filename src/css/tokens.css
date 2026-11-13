@@ -43,13 +43,14 @@
   --mc-ink-secondary: var(--mc-grey-mid);
   --mc-ink-accent: light-dark(var(--mc-purple-bold), var(--mc-purple-tint));
   --mc-line-accent: var(--mc-purple-mid);
-  --mc-fill-solid: var(--mc-purple-bold); /* under white text */
+  --mc-fill-solid: var(--mc-purple-bold);
   --mc-fill-emphasis: light-dark(
     var(--mc-purple-tint),
     color-mix(in srgb, var(--mc-purple-bold) 60%, var(--mc-ground))
   );
   --mc-action: var(--mc-purple-bold);
   --mc-action-risk: var(--mc-red-bold);
+  --mc-ink-on-fill: var(--mc-white); /* on fill-solid, action, action-risk */
   --mc-alert-fill: light-dark(
     var(--mc-red-tint),
     color-mix(in srgb, var(--mc-red-bold) 40%, var(--mc-ground))
