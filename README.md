@@ -75,7 +75,7 @@ presets: [require('@metacensus/library-ui/tailwind3')]
 - `tokens.css` holds every `--mc-*` property below.
 - `fonts.css` loads Inter 400, 500, 700 and 800 from [`@fontsource/inter`](https://fontsource.org/fonts/inter), under its own licence (SIL OFL 1.1). No type scale ships: the guidelines state none. Medium over bold.
 - `theme.css` maps the roles, the font and the shape into a Tailwind 4 `@theme` (`bg-mc-card`, `text-mc-ink`). Consumers not on Tailwind 4 skip it.
-- `tailwind3.js` is the same names as a Tailwind 3 preset, for consumers on Tailwind 3: `bg-mc-card` is the same under either. `bg-mc-card/50` becomes `color-mix(in srgb, var(--mc-card) 50%, transparent)`, so the roles keep their light and dark. Tailwind 3 never reads `theme.css`, and Tailwind 4 needs no preset.
+- `tailwind3` is the same names as a Tailwind 3 preset (`tailwind3.cjs`, CommonJS as Tailwind 3 configs are): `bg-mc-card` is the same under either, and `bg-mc-card/50` becomes `color-mix(in srgb, var(--mc-card) 50%, transparent)`, so the roles keep their light and dark. Tailwind 3 never reads `theme.css`, and Tailwind 4 needs no preset. `theme(colors.mc.ink / 50%)` drops the opacity and emits bare `var(--mc-ink)`, and the legacy `bg-opacity-*` does nothing on a role.
 
 Roles resolve light or dark by the OS setting. `.dark` or `.light` on any element overrides its subtree, which is also how a light panel stays light on a dark page. Components read roles, never the palette.
 
