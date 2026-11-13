@@ -7,6 +7,11 @@ export const STROKE_WIDTH = 17.2
 export const CAP_RADIUS = STROKE_WIDTH / 2
 export const MARK_VIEWBOX = '0 0 185.9 155'
 
+// The lockup's space, and the box its bars fill within it. The mark is scaled
+// by 27 / 185.9 into the box, which holds the lockup's bar paths.
+export const LOCKUP_VIEWBOX = '0 0 159 23'
+export const LOCKUP_MARK_BOX = { x: 0, y: 0, width: 27, height: 22.5 }
+
 export type Segment = { x1: number; y1: number; x2: number; y2: number }
 
 // The six bars, top to bottom.
