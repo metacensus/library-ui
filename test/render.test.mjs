@@ -255,6 +255,15 @@ test('the tailwind3 preset builds bg-mc-card with and without a modifier', () =>
   assert.ok(css.includes('color-mix(in srgb, var(--mc-card) 50%, transparent)'))
 })
 
+test('styles.css wraps the Header and keeps control labels on one line', () => {
+  const declares = (selector, declaration) =>
+    new RegExp(`\\n  \\.${selector} \\{[^}]*${declaration}`).test(styles)
+  assert.ok(declares('mc-header', 'flex-wrap: wrap'))
+  assert.ok(declares('mc-header-actions', 'flex-wrap: wrap'))
+  assert.ok(declares('mc-button', 'white-space: nowrap'))
+  assert.ok(declares('mc-theme-toggle', 'white-space: nowrap'))
+})
+
 test('every role in tokens.css has a Tailwind colour in theme.css and the tailwind3 preset', () => {
   const roles = [
     ...read('../src/css/tokens.css')
