@@ -28,7 +28,7 @@ Marks are importable as `@metacensus/library-ui/marks/mark.svg` and its siblings
 @layer theme, base, mc, components, utilities;
 ```
 
-Without layers nothing changes. To choose the layer's name, import it as `@import '@metacensus/library-ui/styles.css' layer(brand);`.
+Any unlayered rule of yours now beats the package's, whatever its specificity: a bare `button { ... }` beats `.mc-button`, which it did not before. That is how your own CSS wins. To choose the layer's name, import it as `@import '@metacensus/library-ui/styles.css' layer(brand);`, which nests the rules as `brand.mc`, and name `brand` in the ordering line in place of `mc`.
 
 Components render on the server: no router, auth or API client, and no browser global while rendering. In Astro, add `@astrojs/react`; the marks and chrome render at build with no `client:` directive and ship no JS. Only `ThemeToggle` needs one, as `client:visible`.
 
