@@ -255,7 +255,7 @@
   box-sizing: border-box;
   width: 100%;
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--mc-ink-secondary);
+  border: 1px solid var(--mc-line-input);
   border-radius: var(--mc-radius);
   background: var(--mc-card);
   color: var(--mc-ink);

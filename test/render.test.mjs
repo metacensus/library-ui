@@ -227,29 +227,30 @@ test('every role in tokens.css has a Tailwind colour in theme.css', () => {
   }
 })
 
+const tokens = read('../src/css/tokens.css')
+const styles = read('../src/css/styles.css')
+const resolve = (value) => {
+  const ref = /^var\((--[\w-]+)\)$/.exec(value)
+  if (!ref) return value
+  return resolve(new RegExp(`${ref[1]}:\\s*([^;]+?);`).exec(tokens)[1])
+}
+const luminance = (short) => {
+  const hex =
+    short.length === 4
+      ? `#${[...short.slice(1)].map((c) => c + c).join('')}`
+      : short
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+const contrast = (a, b) => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
+  return (hi + 0.05) / (lo + 0.05)
+}
+
 test('buttons read the on-fill ink, which holds 4.5:1 on every fill it covers', () => {
-  const tokens = read('../src/css/tokens.css')
-  const styles = read('../src/css/styles.css')
-  const resolve = (value) => {
-    const ref = /^var\((--[\w-]+)\)$/.exec(value)
-    if (!ref) return value
-    return resolve(new RegExp(`${ref[1]}:\\s*([^;]+?);`).exec(tokens)[1])
-  }
-  const luminance = (short) => {
-    const hex =
-      short.length === 4
-        ? `#${[...short.slice(1)].map((c) => c + c).join('')}`
-        : short
-    const [r, g, b] = [1, 3, 5].map((i) => {
-      const c = parseInt(hex.slice(i, i + 2), 16) / 255
-      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
-    })
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b
-  }
-  const contrast = (a, b) => {
-    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
-    return (hi + 0.05) / (lo + 0.05)
-  }
   const ink = resolve('var(--mc-ink-on-fill)')
   for (const variant of ['primary', 'danger']) {
     const rule = new RegExp(`\\.mc-button-${variant} \\{([^}]*)\\}`).exec(
@@ -260,4 +261,21 @@ test('buttons read the on-fill ink, which holds 4.5:1 on every fill it covers', 
   for (const fill of ['fill-solid', 'action', 'action-risk']) {
     assert.ok(contrast(ink, resolve(`var(--mc-${fill})`)) >= 4.5, fill)
   }
+})
+
+test('a control outline reads the input-border role, 3:1 on the card in light and dark', () => {
+  const rule = /\.mc-control \{([^}]*)\}/.exec(styles)[1]
+  assert.equal(
+    /border:\s*1px solid ([^;]+);/.exec(rule)[1],
+    'var(--mc-line-input)',
+  )
+  const line = resolve('var(--mc-line-input)')
+  const night = resolve('var(--mc-night)')
+  const bold = resolve('var(--mc-grey-bold)')
+  const mix = (i) =>
+    parseInt(bold.slice(i, i + 2), 16) * 0.25 +
+    parseInt(night.slice(i, i + 2), 16) * 0.75
+  const darkCard = `#${[1, 3, 5].map((i) => Math.round(mix(i)).toString(16).padStart(2, '0')).join('')}`
+  assert.ok(contrast(line, resolve('var(--mc-white)')) >= 3, 'light')
+  assert.ok(contrast(line, darkCard) >= 3, 'dark')
 })
