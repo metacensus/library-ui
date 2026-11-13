@@ -82,6 +82,7 @@ test('the tools render on the server', () => {
       h(ui.Chip, { family: 'blue' }, 'Chip'),
       h(ui.Button, { variant: 'secondary' }, 'Save'),
       h(ui.Button, { variant: 'danger' }, 'Delete'),
+      h(ui.Button, { variant: 'inverse' }, 'Join'),
       h(ui.ThemeToggle),
     ),
   )
@@ -94,6 +95,7 @@ test('the tools render on the server', () => {
     'mc-chip-blue',
     'mc-button-secondary',
     'mc-button-danger',
+    'mc-button-inverse',
     'mc-theme-toggle',
   ])
     assert.ok(html.includes(c), c)
@@ -337,4 +339,31 @@ test('the series role holds 3:1 on the card in light and dark', () => {
     const card = resolve('var(--mc-card)', dark)
     assert.ok(contrast(series, card) >= 3, dark ? 'dark' : 'light')
   }
+})
+
+test('an inverse Button is white on Purple ink, 3:1 on Purple and night, label 4.5:1', () => {
+  const rule = /\.mc-button-inverse \{([^}]*)\}/.exec(styles)[1]
+  const fill = resolve(/background:\s*([^;]+);/.exec(rule)[1])
+  const label = resolve(/color:\s*([^;]+);/.exec(rule)[1])
+  const hover = resolve(
+    /\.mc-button-inverse:hover:not\(:disabled\) \{[^}]*background:\s*([^;]+);/.exec(
+      styles,
+    )[1],
+  )
+  assert.equal(fill.toUpperCase(), '#FFF')
+  assert.equal(label, resolve('var(--mc-purple-bold)'))
+  assert.equal(hover, resolve('var(--mc-purple-tint)'))
+  const ring = resolve(
+    /\.mc-button-inverse:focus-visible \{[^}]*outline-color:\s*([^;]+);/.exec(
+      styles,
+    )[1],
+  )
+  // The hero gradient runs Purple bold to Purple mid: both stops hold 3:1.
+  for (const ground of ['fill-solid', 'night', 'purple-mid']) {
+    const g = resolve(`var(--mc-${ground})`)
+    assert.ok(contrast(fill, g) >= 3, ground)
+    assert.ok(contrast(ring, g) >= 3, `ring on ${ground}`)
+  }
+  assert.ok(contrast(label, fill) >= 4.5, 'label on white')
+  assert.ok(contrast(label, hover) >= 4.5, 'label on hover')
 })

@@ -39,7 +39,7 @@ Components render on the server: no router, auth or API client, and no browser g
 - Marks take `variant`: `auto` (the default: solid on light, reversed on dark), `solid` or `reversed`, and `gradient` on the lockup, which needs a white or very light ground. Mark usage is in [TRADEMARKS.md](TRADEMARKS.md).
 - `LogoArrowMorph` is a pure function of `progress`, 0 the mark and 1 the arrow; whatever places it owns the timing. Keep it horizontal.
 - `Nav`'s mobile menu is a checkbox and CSS, so it works without JS.
-- `Button` takes `variant`: `primary` (the default; one per view), `secondary`, `text` or `danger`. A solid Garnet fill marks only a risky action: one that destroys, discards, revokes or cannot be undone. A vote, a filter or a choice between options is not risky.
+- `Button` takes `variant`: `primary` (the default; one per view), `secondary`, `text`, `danger` or `inverse`. A solid Garnet fill marks only a risky action: one that destroys, discards, revokes or cannot be undone. A vote, a filter or a choice between options is not risky. `inverse` is a white fill for the call to action on a `--mc-fill-solid`, `--mc-gradient-hero` or `--mc-night` ground, where `primary` is the ground's own colour or nearly so. Use it on those grounds only: it reads the same in light and dark, and `secondary` inside `.dark` is its quieter sibling.
 - `Button` and `Notice` follow the guidelines' illustrated Actions and Callout patterns. Those patterns do not bind yet: the guidelines have yet to state their shape.
 - Theme: inline `themeScript` in `<head>` so a stored override is on `<html>` before first paint. `useTheme` and `ThemeToggle` read and set it: `system` (the OS), `light` or `dark`.
 
