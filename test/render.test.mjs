@@ -209,3 +209,55 @@ test('a primary Button fills Purple and a danger Button Garnet', () => {
   assert.equal(background('primary'), '#3B0E75')
   assert.equal(background('danger'), '#91042A')
 })
+
+test('every role in tokens.css has a Tailwind colour in theme.css', () => {
+  const roles = [
+    ...read('../src/css/tokens.css')
+      .split('/* Roles. */')[1]
+      .split('/* Gradients')[0]
+      .matchAll(/^ {2}--mc-([\w-]+):/gm),
+  ].map((m) => m[1])
+  const theme = read('../src/css/theme.css')
+  assert.ok(roles.length > 0)
+  for (const role of roles) {
+    assert.ok(
+      theme.includes(`--color-mc-${role}: var(--mc-${role});`),
+      `theme.css maps no colour for --mc-${role}`,
+    )
+  }
+})
+
+test('buttons read the on-fill ink, which holds 4.5:1 on every fill it covers', () => {
+  const tokens = read('../src/css/tokens.css')
+  const styles = read('../src/css/styles.css')
+  const resolve = (value) => {
+    const ref = /^var\((--[\w-]+)\)$/.exec(value)
+    if (!ref) return value
+    return resolve(new RegExp(`${ref[1]}:\\s*([^;]+?);`).exec(tokens)[1])
+  }
+  const luminance = (short) => {
+    const hex =
+      short.length === 4
+        ? `#${[...short.slice(1)].map((c) => c + c).join('')}`
+        : short
+    const [r, g, b] = [1, 3, 5].map((i) => {
+      const c = parseInt(hex.slice(i, i + 2), 16) / 255
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+    })
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+  }
+  const contrast = (a, b) => {
+    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
+    return (hi + 0.05) / (lo + 0.05)
+  }
+  const ink = resolve('var(--mc-ink-on-fill)')
+  for (const variant of ['primary', 'danger']) {
+    const rule = new RegExp(`\\.mc-button-${variant} \\{([^}]*)\\}`).exec(
+      styles,
+    )[1]
+    assert.equal(/color:\s*([^;]+);/.exec(rule)[1], 'var(--mc-ink-on-fill)')
+  }
+  for (const fill of ['fill-solid', 'action', 'action-risk']) {
+    assert.ok(contrast(ink, resolve(`var(--mc-${fill})`)) >= 4.5, fill)
+  }
+})

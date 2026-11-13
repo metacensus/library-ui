@@ -95,12 +95,13 @@ A step is `--mc-<family>-<step>`, as `--mc-purple-bold`. `--mc-white` and `--mc-
 | `--mc-fill-emphasis` | purple tint | purple bold into the ground |
 | `--mc-action`        | purple bold | purple bold                 |
 | `--mc-action-risk`   | red bold    | red bold                    |
+| `--mc-ink-on-fill`   | white       | white                       |
 | `--mc-alert-fill`    | red tint    | red bold into the ground    |
 | `--mc-alert-ink`     | red bold    | red mid                     |
 | `--mc-alert-border`  | red bold    | red bold                    |
 | `--mc-signal`        | red mid     | red mid                     |
 
-`--mc-fill-solid`, `--mc-action` and `--mc-action-risk` sit under white text. `--mc-signal` is Coral: one use per surface, never in the logo, headings, chrome or an action. On dark, `--mc-alert-ink` and `--mc-tint-red-ink` resolve to Coral too, but are not the signal.
+`--mc-ink-on-fill` is the ink for text and icons on `--mc-fill-solid`, `--mc-action` and `--mc-action-risk`. It is not for `--mc-signal`, which does not carry white text, or `--mc-fill-emphasis`, whose ink is `--mc-ink`. `--mc-signal` is Coral: one use per surface, never in the logo, headings, chrome or an action. On dark, `--mc-alert-ink` and `--mc-tint-red-ink` resolve to Coral too, but are not the signal.
 
 ### Tint fills
 

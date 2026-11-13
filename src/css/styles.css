@@ -170,14 +170,14 @@
 }
 .mc-button-primary {
   background: var(--mc-action);
-  color: var(--mc-white);
+  color: var(--mc-ink-on-fill);
 }
 .mc-button-primary:hover:not(:disabled) {
   background: color-mix(in srgb, var(--mc-action) 85%, black);
 }
 .mc-button-danger {
   background: var(--mc-action-risk);
-  color: var(--mc-white);
+  color: var(--mc-ink-on-fill);
 }
 .mc-button-danger:hover:not(:disabled) {
   background: color-mix(in srgb, var(--mc-action-risk) 85%, black);
