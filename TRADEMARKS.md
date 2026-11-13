@@ -31,4 +31,4 @@ The marks are the primary mark, the wordmark lockup, the arrow and the favicon, 
 - Don't recolor outside the variants above, and don't use the coral signal color in a mark.
 - Don't rotate (except the arrow), stretch, compress, skew or distort a mark, or alter the spacing between bars.
 - Don't add gradients, shadows or effects beyond the brand gradient.
-- Don't place the gradient mark on a busy or low-contrast photograph.
+- Don't place the gradient lockup on a busy or low-contrast photograph.
