@@ -89,6 +89,7 @@ A step is `--mc-<family>-<step>`, as `--mc-purple-bold`. `--mc-white` and `--mc-
 | `--mc-hairline`      | grey tint   | grey bold, deepest          |
 | `--mc-ink`           | grey bold   | grey tint                   |
 | `--mc-ink-secondary` | grey mid    | grey mid                    |
+| `--mc-line-input`    | grey mid    | grey mid                    |
 | `--mc-ink-accent`    | purple bold | purple tint                 |
 | `--mc-line-accent`   | purple mid  | purple mid                  |
 | `--mc-fill-solid`    | purple bold | purple bold                 |
@@ -103,6 +104,8 @@ A step is `--mc-<family>-<step>`, as `--mc-purple-bold`. `--mc-white` and `--mc-
 
 `--mc-ink-on-fill` is the ink for text and icons on `--mc-fill-solid`, `--mc-action` and `--mc-action-risk`. It is not for `--mc-signal`, which does not carry white text, or `--mc-fill-emphasis`, whose ink is `--mc-ink`. `--mc-signal` is Coral: one use per surface, never in the logo, headings, chrome or an action. On dark, `--mc-alert-ink` and `--mc-tint-red-ink` resolve to Coral too, but are not the signal.
 
+`--mc-line-input` is the boundary a control must have: the border of a control, at least 3:1 against `--mc-card` in light and dark. `--mc-hairline` is a divider that need not be seen.
+
 ### Tint fills
 
 The default for a chip, pill, badge or callout: the family's tint as the fill, its bold step as ink and border. On dark each family inverts: bold at 18% over the ground is the fill, mid is the ink and border.
@@ -111,7 +114,7 @@ The default for a chip, pill, badge or callout: the family's tint as the fill, i
 
 ### Slate Mist
 
-`--mc-grey-mid` is for text demoted in place: copy that stops being the subject and becomes context for what replaced it. Copy that is merely secondary starts in Charcoal, which is `--mc-ink`. On white Slate Mist is about 3.2:1, under the 4.5:1 minimum for small text, so `--mc-ink-secondary` is not for small text there.
+`--mc-grey-mid` is for text demoted in place: copy that stops being the subject and becomes context for what replaced it. Copy that is merely secondary starts in Charcoal, which is `--mc-ink`. On white Slate Mist is about 3.2:1, under the 4.5:1 minimum for small text, so `--mc-ink-secondary` is not for small text there. For an outline, use `--mc-line-input`.
 
 ### Gradients
 
