@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { MetaCensusLockup } from '../marks/Marks.js'
 import { cn } from '../tools/cn.js'
 
-/** The `brand`, default the linked lockup, and `tagline`, then the consumer's link columns as `children`. A given `brand` replaces the link, so the consumer owns it. */
+/** The brand (the linked lockup unless `brand` is given, in which case the consumer owns the link) and `tagline`, then the consumer's link columns as `children`. */
 export function Footer({
   homeHref = '/',
   brand,
