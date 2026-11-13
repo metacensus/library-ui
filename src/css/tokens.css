@@ -42,6 +42,7 @@
   --mc-ink: light-dark(var(--mc-grey-bold), var(--mc-grey-tint));
   --mc-ink-secondary: var(--mc-grey-mid);
   --mc-line-input: var(--mc-grey-mid);
+  --mc-series: light-dark(var(--mc-blue-bold), var(--mc-blue-mid));
   --mc-ink-accent: light-dark(var(--mc-purple-bold), var(--mc-purple-tint));
   --mc-line-accent: var(--mc-purple-mid);
   --mc-fill-solid: var(--mc-purple-bold);

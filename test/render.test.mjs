@@ -285,6 +285,8 @@ const contrast = (a, b) => {
   return (hi + 0.05) / (lo + 0.05)
 }
 
+// --mc-card on dark: grey bold 25% into the night ground
+
 test('buttons read the on-fill ink, which holds 4.5:1 on every fill it covers', () => {
   const ink = resolve('var(--mc-ink-on-fill)')
   for (const variant of ['primary', 'danger']) {
@@ -308,5 +310,13 @@ test('a control borders with --mc-line-input, 3:1 on --mc-card in light and dark
     const line = resolve('var(--mc-line-input)', dark)
     const card = resolve('var(--mc-card)', dark)
     assert.ok(contrast(line, card) >= 3, dark ? 'dark' : 'light')
+  }
+})
+
+test('the series role holds 3:1 on the card in light and dark', () => {
+  for (const dark of [false, true]) {
+    const series = resolve('var(--mc-series)', dark)
+    const card = resolve('var(--mc-card)', dark)
+    assert.ok(contrast(series, card) >= 3, dark ? 'dark' : 'light')
   }
 })
