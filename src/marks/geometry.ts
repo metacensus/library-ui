@@ -12,6 +12,10 @@ export const MARK_VIEWBOX = '0 0 185.9 155'
 export const LOCKUP_VIEWBOX = '0 0 159 23'
 export const LOCKUP_MARK_BOX = { x: 0, y: 0, width: 27, height: 22.5 }
 
+// The wordmark alone: the lockup's own frame from the first letter on, so it
+// sits at the same height and scale as in the lockup.
+export const WORDMARK_VIEWBOX = '34.4348 0 124.5652 23'
+
 export type Segment = { x1: number; y1: number; x2: number; y2: number }
 
 // The six bars, top to bottom.

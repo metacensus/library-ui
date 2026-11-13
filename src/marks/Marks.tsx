@@ -9,6 +9,7 @@ import {
   LOCKUP_VIEWBOX,
   MARK_VIEWBOX,
   STROKE_WIDTH,
+  WORDMARK_VIEWBOX,
   barAt,
 } from './geometry.js'
 import { LOCKUP_PATHS } from './lockupPaths.js'
@@ -90,6 +91,27 @@ export function MetaCensusLockup({
         </defs>
       )}
       {LOCKUP_PATHS.map((d) => (
+        <path key={d} d={d} />
+      ))}
+    </svg>
+  )
+}
+
+/** The wordmark alone: the lockup's letters, outlined, without the bars. */
+export function MetaCensusWordmark({
+  variant = 'auto',
+  className,
+  title = 'MetaCensus',
+}: MarkProps) {
+  return (
+    <svg
+      viewBox={WORDMARK_VIEWBOX}
+      className={cn('mc-wordmark', fillClass(variant), className)}
+      role="img"
+      aria-label={title}
+    >
+      <title>{title}</title>
+      {LOCKUP_PATHS.slice(BAR_RECTS.length).map((d) => (
         <path key={d} d={d} />
       ))}
     </svg>

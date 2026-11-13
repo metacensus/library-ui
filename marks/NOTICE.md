@@ -1,6 +1,6 @@
 # Notice
 
-The files in this directory are the MetaCensus marks: the primary mark, the wordmark lockup, the arrow and the favicon.
+The files in this directory are the MetaCensus marks: the primary mark, the wordmark lockup, the wordmark alone, the arrow and the favicon.
 
 © MetaCensus. All rights reserved.
 

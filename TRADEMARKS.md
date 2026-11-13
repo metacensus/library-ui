@@ -1,6 +1,6 @@
 # MetaCensus marks
 
-The marks are the primary mark, the wordmark lockup, the arrow and the favicon, in [`marks/`](marks). All rights in them are reserved ([`marks/NOTICE.md`](marks/NOTICE.md)); the repository's AGPL-3.0-only license does not cover them. Questions and co-branded approvals: brand@metacensus.io.
+The marks are the primary mark, the wordmark lockup, the wordmark alone, the arrow and the favicon, in [`marks/`](marks). All rights in them are reserved ([`marks/NOTICE.md`](marks/NOTICE.md)); the repository's AGPL-3.0-only license does not cover them. Questions and co-branded approvals: brand@metacensus.io.
 
 ## Permitted use
 
@@ -14,6 +14,7 @@ The marks are the primary mark, the wordmark lockup, the arrow and the favicon, 
 | --------------------- | ------------------------------------------------------------------------------- |
 | `mark.svg`            | Primary mark: the horizontal bars. The default for app icons, UI and marketing. |
 | `wordmark-lockup.svg` | Mark and wordmark, horizontal. The wordmark is outlined Inter, never live text. |
+| `wordmark.svg`        | The wordmark alone, outlined Inter, without the bars. Solid and reversed only.  |
 | `arrow.svg`           | The arrow, built from the mark's own bars.                                      |
 | `favicon.svg`         | The mark for tab icons.                                                         |
 
