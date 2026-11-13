@@ -180,6 +180,26 @@ test('styles.css prefixes every class and scopes nothing to a site', () => {
   assert.doesNotMatch(css, /marketing-site/)
 })
 
+test('styles.css is one `@layer mc` block', () => {
+  const css = read('../src/css/styles.css').replace(/\/\*[\s\S]*?\*\//g, '')
+  // Every top-level statement, cut at depth 0: a rule outside the layer
+  // would beat any layered utility whatever its specificity.
+  const top = []
+  let depth = 0
+  let start = 0
+  for (let i = 0; i < css.length; i++) {
+    if (css[i] === '{') depth++
+    if (css[i] === '}' && --depth === 0) {
+      top.push(css.slice(start, i + 1).trim())
+      start = i + 1
+    }
+  }
+  assert.equal(depth, 0)
+  assert.equal(css.slice(start).trim(), '')
+  assert.equal(top.length, 1)
+  assert.match(top[0], /^@layer mc \{/)
+})
+
 test('a primary Button fills Purple and a danger Button Garnet', () => {
   const tokens = read('../src/css/tokens.css')
   const styles = read('../src/css/styles.css')
