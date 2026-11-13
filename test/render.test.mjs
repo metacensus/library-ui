@@ -229,10 +229,45 @@ test('every role in tokens.css has a Tailwind colour in theme.css', () => {
 
 const tokens = read('../src/css/tokens.css')
 const styles = read('../src/css/styles.css')
-const resolve = (value) => {
-  const ref = /^var\((--[\w-]+)\)$/.exec(value)
-  if (!ref) return value
-  return resolve(new RegExp(`${ref[1]}:\\s*([^;]+?);`).exec(tokens)[1])
+const split = (args) => {
+  const parts = []
+  let depth = 0
+  let from = 0
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '(') depth++
+    if (args[i] === ')') depth--
+    if (args[i] === ',' && depth === 0) {
+      parts.push(args.slice(from, i).trim())
+      from = i + 1
+    }
+  }
+  return [...parts, args.slice(from).trim()]
+}
+const resolve = (value, dark = false) => {
+  const v = value.trim()
+  const ref = /^var\((--[\w-]+)\)$/.exec(v)
+  if (ref) {
+    const def = new RegExp(`${ref[1]}:\\s*([^;]+?);`).exec(tokens)[1]
+    return resolve(def, dark)
+  }
+  const fn = /^([\w-]+)\(([\s\S]*)\)$/.exec(v)
+  if (!fn) return v
+  const args = split(fn[2])
+  if (fn[1] === 'light-dark') return resolve(args[dark ? 1 : 0], dark)
+  if (fn[1] === 'color-mix') {
+    const [x, px] = args[1].split(/\s+(?=[\d.]+%$)/)
+    const colours = [resolve(x, dark), resolve(args[2].split(/\s+/)[0], dark)]
+    const w = parseFloat(px) / 100
+    const channel = (i) =>
+      Math.round(
+        parseInt(colours[0].slice(i, i + 2), 16) * w +
+          parseInt(colours[1].slice(i, i + 2), 16) * (1 - w),
+      )
+        .toString(16)
+        .padStart(2, '0')
+    return `#${channel(1)}${channel(3)}${channel(5)}`
+  }
+  throw new Error(`cannot resolve ${v}`)
 }
 const luminance = (short) => {
   const hex =
@@ -263,19 +298,15 @@ test('buttons read the on-fill ink, which holds 4.5:1 on every fill it covers', 
   }
 })
 
-test('a control outline reads the input-border role, 3:1 on the card in light and dark', () => {
+test('a control borders with --mc-line-input, 3:1 on --mc-card in light and dark', () => {
   const rule = /\.mc-control \{([^}]*)\}/.exec(styles)[1]
   assert.equal(
     /border:\s*1px solid ([^;]+);/.exec(rule)[1],
     'var(--mc-line-input)',
   )
-  const line = resolve('var(--mc-line-input)')
-  const night = resolve('var(--mc-night)')
-  const bold = resolve('var(--mc-grey-bold)')
-  const mix = (i) =>
-    parseInt(bold.slice(i, i + 2), 16) * 0.25 +
-    parseInt(night.slice(i, i + 2), 16) * 0.75
-  const darkCard = `#${[1, 3, 5].map((i) => Math.round(mix(i)).toString(16).padStart(2, '0')).join('')}`
-  assert.ok(contrast(line, resolve('var(--mc-white)')) >= 3, 'light')
-  assert.ok(contrast(line, darkCard) >= 3, 'dark')
+  for (const dark of [false, true]) {
+    const line = resolve('var(--mc-line-input)', dark)
+    const card = resolve('var(--mc-card)', dark)
+    assert.ok(contrast(line, card) >= 3, dark ? 'dark' : 'light')
+  }
 })

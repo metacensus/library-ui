@@ -104,7 +104,7 @@ A step is `--mc-<family>-<step>`, as `--mc-purple-bold`. `--mc-white` and `--mc-
 
 `--mc-ink-on-fill` is the ink for text and icons on `--mc-fill-solid`, `--mc-action` and `--mc-action-risk`. It is not for `--mc-signal`, which does not carry white text, or `--mc-fill-emphasis`, whose ink is `--mc-ink`. `--mc-signal` is Coral: one use per surface, never in the logo, headings, chrome or an action. On dark, `--mc-alert-ink` and `--mc-tint-red-ink` resolve to Coral too, but are not the signal.
 
-`--mc-line-input` is the boundary a control must have: the border of an input, a dropdown, a dropzone, at least 3:1 against `--mc-card` in light and dark. `--mc-hairline` is a divider that need not be seen. `--mc-alert-ink` keeps the invalid border.
+`--mc-line-input` is the boundary a control must have: the border of a control, at least 3:1 against `--mc-card` in light and dark. `--mc-hairline` is a divider that need not be seen.
 
 ### Tint fills
 
