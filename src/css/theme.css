@@ -7,12 +7,15 @@
   --color-mc-hairline: var(--mc-hairline);
   --color-mc-ink: var(--mc-ink);
   --color-mc-ink-secondary: var(--mc-ink-secondary);
+  --color-mc-line-input: var(--mc-line-input);
+  --color-mc-series: var(--mc-series);
   --color-mc-ink-accent: var(--mc-ink-accent);
   --color-mc-line-accent: var(--mc-line-accent);
   --color-mc-fill-solid: var(--mc-fill-solid);
   --color-mc-fill-emphasis: var(--mc-fill-emphasis);
   --color-mc-action: var(--mc-action);
   --color-mc-action-risk: var(--mc-action-risk);
+  --color-mc-ink-on-fill: var(--mc-ink-on-fill);
   --color-mc-alert-fill: var(--mc-alert-fill);
   --color-mc-alert-ink: var(--mc-alert-ink);
   --color-mc-alert-border: var(--mc-alert-border);
