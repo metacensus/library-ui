@@ -4,7 +4,8 @@
 @layer mc {
   /* Marks. Minimum height 24px on screen. */
   .mc-mark,
-  .mc-lockup {
+  .mc-lockup,
+  .mc-wordmark {
     display: block;
     height: 1.5rem;
     width: auto;

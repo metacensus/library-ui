@@ -3,6 +3,7 @@ export {
   MetaCensusArrow,
   MetaCensusLockup,
   MetaCensusMark,
+  MetaCensusWordmark,
 } from './marks/Marks.js'
 export * from './marks/geometry.js'
 export { Footer } from './chrome/Footer.js'

@@ -212,6 +212,28 @@ test('the lockup draws the reserved outlines', () => {
   for (const d of ds) assert.ok(html.includes(`d="${d}"`))
 })
 
+test('the wordmark draws the lockup letters without the bars', () => {
+  const html = renderToString(h(ui.MetaCensusWordmark))
+  const lockup = read('../marks/wordmark-lockup.svg')
+  const letters = [...lockup.matchAll(/<path d="([^"]+)"/g)]
+    .map((m) => m[1])
+    .slice(ui.BAR_RECTS.length)
+  assert.equal(letters.length, 10)
+  assert.equal((html.match(/<path /g) ?? []).length, letters.length)
+  for (const d of letters) assert.ok(html.includes(`d="${d}"`))
+  assert.ok(!html.includes('<rect'))
+  const file = read('../marks/wordmark.svg')
+  const filed = [...file.matchAll(/<path d="([^"]+)"/g)].map((m) => m[1])
+  assert.deepEqual(filed, letters)
+  const [x, , w, h2] = ui.WORDMARK_VIEWBOX.split(' ').map(Number)
+  const [lx, , lw, lh] = ui.LOCKUP_VIEWBOX.split(' ').map(Number)
+  assert.equal(h2, lh)
+  assert.equal(x + w, lx + lw)
+  assert.ok(html.includes(`viewBox="${ui.WORDMARK_VIEWBOX}"`))
+  assert.ok(file.includes(`viewBox="${ui.WORDMARK_VIEWBOX}"`))
+  assert.ok(!html.includes('Gradient'))
+})
+
 test('styles.css prefixes every class and scopes nothing to a site', () => {
   const css = read('../src/css/styles.css')
     .replace(/\/\*[\s\S]*?\*\//g, '')
