@@ -107,7 +107,7 @@ A step is `--mc-<family>-<step>`, as `--mc-purple-bold`. `--mc-white` and `--mc-
 
 `--mc-line-input` is the boundary a control must have: the border of a control, at least 3:1 against `--mc-card` in light and dark. `--mc-hairline` is a divider that need not be seen.
 
-`--mc-series` is the stroke or fill of a chart series, at least 3:1 against `--mc-card` in light and dark. A chart with one series uses it, and more series continue through the other blues. Coral stays the one `--mc-signal` per surface, so a series is never Coral.
+`--mc-series` is the stroke or fill of a chart series, at least 3:1 against `--mc-card` in light and dark.
 
 ### Tint fills
 

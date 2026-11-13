@@ -285,8 +285,6 @@ const contrast = (a, b) => {
   return (hi + 0.05) / (lo + 0.05)
 }
 
-// --mc-card on dark: grey bold 25% into the night ground
-
 test('buttons read the on-fill ink, which holds 4.5:1 on every fill it covers', () => {
   const ink = resolve('var(--mc-ink-on-fill)')
   for (const variant of ['primary', 'danger']) {
