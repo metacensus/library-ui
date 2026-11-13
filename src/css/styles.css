@@ -183,6 +183,15 @@
   .mc-button-danger:hover:not(:disabled) {
     background: color-mix(in srgb, var(--mc-action-risk) 85%, black);
   }
+  /* For a Purple or night ground, where primary vanishes. White and Purple
+     are palette steps: no role names a white fill or the ink on it. */
+  .mc-button-inverse {
+    background: var(--mc-white);
+    color: var(--mc-purple-bold);
+  }
+  .mc-button-inverse:hover:not(:disabled) {
+    background: var(--mc-purple-tint);
+  }
   .mc-button-secondary {
     border-color: var(--mc-ink);
     background: transparent;
