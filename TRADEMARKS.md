@@ -21,7 +21,7 @@ The marks are the primary mark, the wordmark lockup, the arrow and the favicon, 
 
 - **Clear space:** keep the height of the smallest bar clear on all sides.
 - **Minimum size:** 24px tall on screen, 12mm in print, 16px for a favicon.
-- **Variants:** gradient (`#37128A` to `#AB82EC`, left to right across the lockup), solid `#3B0E75`, reversed white on dark, grayscale. The gradient needs a white or very light ground; use the reversed variant on dark or violet grounds.
+- **Variants:** solid `#3B0E75` and reversed white on dark, for the mark and the lockup; the lockup also has a gradient (`#37128A` to `#AB82EC`, left to right). The gradient needs a white or very light ground; use the reversed variant on dark or violet grounds.
 - **Scale** proportionally from these vector files.
 - **The arrow** may be rotated to follow reading direction. Nothing else may.
 

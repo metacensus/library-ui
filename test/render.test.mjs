@@ -162,6 +162,22 @@ test('the geometry matches the reserved marks', () => {
   })
 })
 
+test('the lockup spacing places the mark as the lockup draws it', () => {
+  assert.equal(ui.LOCKUP_VIEWBOX, '0 0 159 23')
+  const [, , mw, mh] = ui.MARK_VIEWBOX.split(' ').map(Number)
+  const box = ui.LOCKUP_MARK_BOX
+  assert.ok(Math.abs(box.width / box.height - mw / mh) < 0.01)
+  const scale = box.width / mw
+  const file = read('../marks/wordmark-lockup.svg')
+  const bars = [...file.matchAll(/<path d="M([\d.]+) ([\d.]+)/g)].slice(0, 6)
+  assert.equal(bars.length, ui.BAR_RECTS.length)
+  bars.forEach(([, x, y], i) => {
+    const bar = ui.BAR_RECTS[i]
+    assert.ok(Math.abs(box.x + bar.x * scale - x) < 0.05)
+    assert.ok(Math.abs(box.y + (bar.y + ui.CAP_RADIUS) * scale - y) < 0.05)
+  })
+})
+
 test('the lockup draws the reserved outlines', () => {
   const html = renderToString(h(ui.MetaCensusLockup))
   const file = read('../marks/wordmark-lockup.svg')

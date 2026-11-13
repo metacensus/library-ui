@@ -6,11 +6,12 @@ import {
   BARS,
   BAR_RECTS,
   CAP_RADIUS,
+  LOCKUP_VIEWBOX,
   MARK_VIEWBOX,
   STROKE_WIDTH,
   barAt,
 } from './geometry.js'
-import { LOCKUP_PATHS, LOCKUP_VIEWBOX } from './lockupPaths.js'
+import { LOCKUP_PATHS } from './lockupPaths.js'
 
 // `auto` is the solid mark on light and the reversed mark on dark.
 type Variant = 'auto' | 'solid' | 'reversed'

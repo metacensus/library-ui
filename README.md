@@ -24,7 +24,7 @@ Marks are importable as `@metacensus/library-ui/marks/mark.svg` and its siblings
 
 Components render on the server: no router, auth or API client, and no browser global while rendering. In Astro, add `@astrojs/react`; the marks and chrome render at build with no `client:` directive and ship no JS. Only `ThemeToggle` needs one, as `client:visible`.
 
-- Marks: `MetaCensusMark`, `MetaCensusLockup`, `MetaCensusArrow`, `LogoArrowMorph`, and the shared geometry.
+- Marks: `MetaCensusMark`, `MetaCensusLockup`, `MetaCensusArrow`, `LogoArrowMorph`, and the shared geometry, including the lockup's spacing (`LOCKUP_VIEWBOX`, and `LOCKUP_MARK_BOX` for the mark's box within it).
 - Chrome: `Header` (`nav` and `actions` slots), `Footer` (`tagline`; link columns as children), `Nav` (`links`).
 - Tools: `cn`, `Button`, `Notice`, `Chip`, the form kit (`Field`, `Label`, `Input`, `Textarea`, `Select`, `Checkbox`, `RadioGroup`, `FieldError`), `useTheme`, `ThemeToggle`, `themeScript`.
 
