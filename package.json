@@ -23,6 +23,7 @@
     "./fonts.css": "./src/css/fonts.css",
     "./styles.css": "./src/css/styles.css",
     "./theme.css": "./src/css/theme.css",
+    "./tailwind3": "./src/css/tailwind3.js",
     "./marks/*.svg": "./marks/*.svg",
     "./package.json": "./package.json"
   },
@@ -53,6 +54,7 @@
     "prettier": "^3.6.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "tailwindcss": "^3.4.19",
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.46.0"
   }

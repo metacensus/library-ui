@@ -1,8 +1,11 @@
 // Renders the package as an Astro page would at build time: on the server, with
 // no client directive and no browser. Runs against the built `dist`.
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { test } from 'node:test'
 import { createElement as h } from 'react'
 import { renderToString } from 'react-dom/server'
@@ -203,6 +206,29 @@ test('styles.css is one `@layer mc` block', () => {
 })
 
 test('a primary Button fills Purple and a danger Button Garnet', () => {
+  test('tailwind3.js builds bg-mc-card with and without a modifier', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'mc-tw3-'))
+    writeFileSync(join(dir, 'in.html'), '<i class="bg-mc-card bg-mc-card/50">')
+    writeFileSync(join(dir, 'in.css'), '@tailwind utilities;')
+    const preset = pathToFileURL(
+      join(import.meta.dirname, '../src/css/tailwind3.js'),
+    ).href
+    writeFileSync(
+      join(dir, 'tailwind.config.mjs'),
+      `import p from '${preset}'
+export default { presets: [p], content: ['${join(dir, 'in.html')}'] }`,
+    )
+    const css = execFileSync(
+      join(import.meta.dirname, '../node_modules/.bin/tailwindcss'),
+      ['-c', join(dir, 'tailwind.config.mjs'), '-i', join(dir, 'in.css')],
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+    )
+    assert.ok(css.includes('background-color: var(--mc-card)'))
+    assert.ok(
+      css.includes('color-mix(in srgb, var(--mc-card) 50%, transparent)'),
+    )
+  })
+
   const tokens = read('../src/css/tokens.css')
   const styles = read('../src/css/styles.css')
   // Follows `var(--x)` chains to a hex colour; both roles are constant in
@@ -232,7 +258,7 @@ test('a primary Button fills Purple and a danger Button Garnet', () => {
   assert.equal(background('danger'), '#91042A')
 })
 
-test('every role in tokens.css has a Tailwind colour in theme.css', () => {
+test('every role in tokens.css has a Tailwind colour in theme.css and tailwind3.js', async () => {
   const roles = [
     ...read('../src/css/tokens.css')
       .split('/* Roles. */')[1]
@@ -240,8 +266,16 @@ test('every role in tokens.css has a Tailwind colour in theme.css', () => {
       .matchAll(/^ {2}--mc-([\w-]+):/gm),
   ].map((m) => m[1])
   const theme = read('../src/css/theme.css')
+  const { default: preset } = await import('../src/css/tailwind3.js')
+  const mc = preset.theme.extend.colors.mc
   assert.ok(roles.length > 0)
+  assert.deepEqual(Object.keys(mc).sort(), [...roles].sort())
   for (const role of roles) {
+    assert.equal(mc[role]({}), `var(--mc-${role})`)
+    assert.equal(
+      mc[role]({ opacityValue: '0.5' }),
+      `color-mix(in srgb, var(--mc-${role}) 50%, transparent)`,
+    )
     assert.ok(
       theme.includes(`--color-mc-${role}: var(--mc-${role});`),
       `theme.css maps no colour for --mc-${role}`,
