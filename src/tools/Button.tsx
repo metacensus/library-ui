@@ -13,8 +13,8 @@ type ButtonProps = Own &
  *  secondary, bare text for the third. One primary per view. A solid Garnet
  *  fill, `danger`, marks only a risky action: one that destroys, discards,
  *  revokes or cannot be undone. A white fill, `inverse`, is the action on a
- *  Purple or night ground, where `primary` matches it. With an `href` it renders a link. The
- *  guidelines' Actions pattern does not bind yet. */
+ *  Purple or night ground, where `primary` matches it. With an `href` it
+ *  renders a link. The guidelines' Actions pattern does not bind yet. */
 export function Button({
   variant = 'primary',
   className,

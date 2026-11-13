@@ -353,8 +353,17 @@ test('an inverse Button is white on Purple ink, 3:1 on Purple and night, label 4
   assert.equal(fill.toUpperCase(), '#FFF')
   assert.equal(label, resolve('var(--mc-purple-bold)'))
   assert.equal(hover, resolve('var(--mc-purple-tint)'))
-  for (const ground of ['fill-solid', 'night'])
-    assert.ok(contrast(fill, resolve(`var(--mc-${ground})`)) >= 3, ground)
+  const ring = resolve(
+    /\.mc-button-inverse:focus-visible \{[^}]*outline-color:\s*([^;]+);/.exec(
+      styles,
+    )[1],
+  )
+  // The hero gradient runs Purple bold to Purple mid: both stops hold 3:1.
+  for (const ground of ['fill-solid', 'night', 'purple-mid']) {
+    const g = resolve(`var(--mc-${ground})`)
+    assert.ok(contrast(fill, g) >= 3, ground)
+    assert.ok(contrast(ring, g) >= 3, `ring on ${ground}`)
+  }
   assert.ok(contrast(label, fill) >= 4.5, 'label on white')
   assert.ok(contrast(label, hover) >= 4.5, 'label on hover')
 })
