@@ -256,15 +256,12 @@ test('the tailwind3 preset builds bg-mc-card with and without a modifier', () =>
 })
 
 test('styles.css wraps the Header and keeps control labels on one line', () => {
-  const css = read('../src/css/styles.css')
-  const rule = (selector) =>
-    new RegExp(`\\n  ${selector.replace('.', '\\.')} \\{([^}]*)\\}`).exec(
-      css,
-    )[1]
-  assert.match(rule('.mc-header'), /flex-wrap:\s*wrap/)
-  assert.match(rule('.mc-header-actions'), /flex-wrap:\s*wrap/)
-  assert.match(rule('.mc-button'), /white-space:\s*nowrap/)
-  assert.match(rule('.mc-theme-toggle'), /white-space:\s*nowrap/)
+  const declares = (selector, declaration) =>
+    new RegExp(`\\n  \\.${selector} \\{[^}]*${declaration}`).test(styles)
+  assert.ok(declares('mc-header', 'flex-wrap: wrap'))
+  assert.ok(declares('mc-header-actions', 'flex-wrap: wrap'))
+  assert.ok(declares('mc-button', 'white-space: nowrap'))
+  assert.ok(declares('mc-theme-toggle', 'white-space: nowrap'))
 })
 
 test('every role in tokens.css has a Tailwind colour in theme.css and the tailwind3 preset', () => {

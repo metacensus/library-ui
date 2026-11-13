@@ -33,7 +33,7 @@ Any unlayered rule of yours now beats the package's, whatever its specificity: a
 Components render on the server: no router, auth or API client, and no browser global while rendering. In Astro, add `@astrojs/react`; the marks and chrome render at build with no `client:` directive and ship no JS. Only `ThemeToggle` needs one, as `client:visible`.
 
 - Marks: `MetaCensusMark`, `MetaCensusLockup`, `MetaCensusArrow`, `LogoArrowMorph`, and the shared geometry.
-- Chrome: `Header` (`nav` and `actions` slots; the `actions` wrap onto their own row on a narrow screen, so a 375px viewport needs no horizontal scroll), `Footer` (`tagline`; link columns as children), `Nav` (`links`).
+- Chrome: `Header` (`nav` and `actions` slots, which wrap on a narrow screen; with no `nav`, the `actions` sit at the end of the row), `Footer` (`tagline`; link columns as children), `Nav` (`links`).
 - Tools: `cn`, `Button`, `Notice`, `Chip`, the form kit (`Field`, `Label`, `Input`, `Textarea`, `Select`, `Checkbox`, `RadioGroup`, `FieldError`), `useTheme`, `ThemeToggle`, `themeScript`.
 
 - Marks take `variant`: `auto` (the default: solid on light, reversed on dark), `solid` or `reversed`, and `gradient` on the lockup, which needs a white or very light ground. Mark usage is in [TRADEMARKS.md](TRADEMARKS.md).
