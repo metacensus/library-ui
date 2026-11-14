@@ -13,6 +13,13 @@ export { Button } from './tools/Button.js'
 export { Chip } from './tools/Chip.js'
 export { cn } from './tools/cn.js'
 export {
+  formatBibtex,
+  formatCitationText,
+  formatRis,
+  type Citation,
+} from './tools/cite.js'
+export { CiteThisPage } from './tools/CiteThisPage.js'
+export {
   Checkbox,
   Field,
   FieldError,

@@ -34,7 +34,7 @@ Components render on the server: no router, auth or API client, and no browser g
 
 - Marks: `MetaCensusMark`, `MetaCensusLockup`, `MetaCensusWordmark` (the lockup's letters alone, in `WORDMARK_VIEWBOX`), `MetaCensusArrow`, `LogoArrowMorph`, and the shared geometry, including the lockup's spacing (`LOCKUP_VIEWBOX`, and `LOCKUP_MARK_BOX` for the mark's box within it).
 - Chrome: `Header` (`nav` and `actions` slots, which wrap on a narrow screen; with no `nav`, the `actions` sit at the end of the row), `Footer` (`brand` replaces the linked lockup and its link is the consumer's; `tagline`; link columns as children), `Nav` (`links`).
-- Tools: `cn`, `Button`, `Notice`, `Chip`, the form kit (`Field`, `Label`, `Input`, `Textarea`, `Select`, `Checkbox`, `RadioGroup`, `FieldError`), `useTheme`, `ThemeToggle`, `themeScript`.
+- Tools: `cn`, `Button`, `Notice`, `Chip`, `CiteThisPage` with the formatters `formatRis`, `formatBibtex` and `formatCitationText`, the form kit (`Field`, `Label`, `Input`, `Textarea`, `Select`, `Checkbox`, `RadioGroup`, `FieldError`), `useTheme`, `ThemeToggle`, `themeScript`.
 
 - Marks take `variant`: `auto` (the default: solid on light, reversed on dark), `solid` or `reversed`, and `gradient` on the lockup, which needs a white or very light ground. Mark usage is in [TRADEMARKS.md](TRADEMARKS.md).
 - `LogoArrowMorph` is a pure function of `progress`, 0 the mark and 1 the arrow; whatever places it owns the timing. Keep it horizontal.
@@ -56,6 +56,38 @@ import { Header, Nav, Button, themeScript } from '@metacensus/library-ui'
   <Button slot="actions" href="/join">Join</Button>
 </Header>
 <Button variant="danger">Delete account</Button>
+```
+
+`CiteThisPage` takes a `citation` (`title`, `authors` as `Family, Given`, an ISO `date`, `publisher` and `url`) plus `risHref` and `bibHref`, and renders a `Cite this page` disclosure with the citation as text and a download link to each file. It is a `<details>`, so it needs no JS and no `client:` directive, and it renders nothing when `citation.url` is empty. The page owns the URL and its permanence. The formatters are pure functions: a page writes the two files at build and links to them.
+
+```astro
+---
+// src/pages/a-page.astro
+import { CiteThisPage } from '@metacensus/library-ui'
+import { citation } from '../citation'
+---
+<CiteThisPage citation={citation} risHref="/a-page.ris" bibHref="/a-page.bib" />
+```
+
+```ts
+// src/citation.ts
+export const citation = {
+  title: 'A page',
+  authors: ['Doe, Jane', 'Roe, Richard'],
+  date: '2026-11-10',
+  publisher: 'MetaCensus',
+  url: 'https://example.org/a-page',
+}
+```
+
+```ts
+// src/pages/a-page.ris.ts, and the same with formatBibtex in a-page.bib.ts
+import { formatRis } from '@metacensus/library-ui'
+import { citation } from '../citation'
+export const GET = () =>
+  new Response(formatRis(citation), {
+    headers: { 'Content-Type': 'application/x-research-info-systems' },
+  })
 ```
 
 In `.astro` files, pass `Header`'s `nav` and `actions` as named slots; JSX props there fail the build.

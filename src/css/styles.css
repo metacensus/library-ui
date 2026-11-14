@@ -271,6 +271,33 @@
     color: var(--mc-tint-blue-ink);
   }
 
+  /* CiteThisPage: a disclosure on the card role. */
+  .mc-cite {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--mc-hairline);
+    border-radius: var(--mc-radius);
+    background: var(--mc-card);
+    color: var(--mc-ink);
+  }
+  .mc-cite-summary {
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .mc-cite-summary:focus-visible {
+    outline: 2px solid var(--mc-line-accent);
+    outline-offset: 2px;
+  }
+  .mc-cite-text {
+    margin: 0.75rem 0;
+    overflow-wrap: anywhere;
+  }
+  .mc-cite-downloads {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0;
+  }
+
   /* Form kit. */
   .mc-field {
     display: flex;

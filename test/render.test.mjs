@@ -489,3 +489,50 @@ test('an inverse Button is white on Purple ink, 3:1 on Purple and night, label 4
   assert.ok(contrast(label, fill) >= 4.5, 'label on white')
   assert.ok(contrast(label, hover) >= 4.5, 'label on hover')
 })
+
+const citation = {
+  title: 'Cost & Impact: 50% of the_data #1',
+  authors: ['Doe, Jane', 'Roe, Richard'],
+  date: '2026-11-10',
+  publisher: 'MetaCensus',
+  url: 'https://example.org/cite_this?a=1&b=2#top',
+}
+
+// The expected files are what a person imports into Zotero and EndNote by hand.
+test('the formatters write the committed expected files', () => {
+  const dir = '../test/fixtures/cite-this-page'
+  assert.equal(ui.formatRis(citation), read(`${dir}.ris`))
+  assert.equal(ui.formatBibtex(citation), read(`${dir}.bib`))
+  assert.equal(`${ui.formatCitationText(citation)}\n`, read(`${dir}.txt`))
+})
+
+test('RIS ends in `ER  - ` and BibTeX is one @misc entry', () => {
+  const ris = ui.formatRis(citation)
+  assert.ok(ris.endsWith('\nER  - '))
+  assert.equal(ris.match(/^AU {2}- /gm)?.length, 2)
+  assert.ok(ui.formatRis({ ...citation, title: 'A\nB' }).includes('TI  - A B'))
+  const bib = ui.formatBibtex(citation)
+  assert.equal(bib.match(/^@/gm)?.length, 1)
+  assert.match(bib, /howpublished = \{\\url\{/)
+  assert.match(ui.formatBibtex({ ...citation, title: '{a}' }), /\\\{a\\\}/)
+})
+
+test('CiteThisPage is a details with the citation and both downloads', () => {
+  const html = renderToString(
+    h(ui.CiteThisPage, { citation, risHref: '/c.ris', bibHref: '/c.bib' }),
+  )
+  assert.match(html, /^<details class="mc-cite"/)
+  assert.match(html, /<summary[^>]*>Cite this page<\/summary>/)
+  assert.ok(html.includes('href="/c.ris"'))
+  assert.ok(html.includes('href="/c.bib"'))
+  assert.ok(html.includes('Doe, Jane and Roe, Richard (2026-11-10)'))
+  assert.doesNotMatch(html, /<script/)
+  const none = renderToString(
+    h(ui.CiteThisPage, {
+      citation: { ...citation, url: '' },
+      risHref: '/c.ris',
+      bibHref: '/c.bib',
+    }),
+  )
+  assert.equal(none, '')
+})
