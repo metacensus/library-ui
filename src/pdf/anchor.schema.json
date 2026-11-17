@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PdfAnchor",
+  "description": "Where a mark lies on one PDF: a W3C Web Annotation target. Readers skip selector types they do not know.",
+  "type": "object",
+  "required": ["source", "selector"],
+  "properties": {
+    "source": {
+      "type": "object",
+      "required": ["sha256"],
+      "properties": {
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "selector": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["type"],
+        "properties": { "type": { "type": "string" } },
+        "allOf": [
+          {
+            "if": { "properties": { "type": { "const": "PdfQuadSelector" } } },
+            "then": {
+              "required": ["quads"],
+              "properties": {
+                "quads": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "required": ["page", "points"],
+                    "properties": {
+                      "page": { "type": "integer", "minimum": 1 },
+                      "points": {
+                        "description": "PDF default user space, counter-clockwise from the text's start-bottom: start-bottom, end-bottom, end-top, start-top.",
+                        "type": "array",
+                        "items": { "type": "number" },
+                        "minItems": 8,
+                        "maxItems": 8
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "type": { "const": "TextQuoteSelector" } }
+            },
+            "then": {
+              "required": ["exact"],
+              "properties": {
+                "exact": { "type": "string", "minLength": 1 },
+                "prefix": { "type": "string", "maxLength": 32 },
+                "suffix": { "type": "string", "maxLength": 32 }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

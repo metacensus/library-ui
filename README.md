@@ -2,7 +2,7 @@
 
 MetaCensus's brand layer and a small set of UI tools, as one ESM React package (React 18 peer).
 
-The first release's contents are tracked in this repository's issues. So far it ships the marks, the brand tokens and the components.
+The first release's contents are tracked in this repository's issues. So far it ships the marks, the brand tokens, the components and the PDF anchor format.
 
 ## Use
 
@@ -59,6 +59,13 @@ import { Header, Nav, Button, themeScript } from '@metacensus/library-ui'
 ```
 
 In `.astro` files, pass `Header`'s `nav` and `actions` as named slots; JSX props there fail the build.
+
+## PDF
+
+`@metacensus/library-ui/pdf` is a separate entry point, so the main one never loads pdf.js.
+
+- A stored mark is a `PdfAnchor`, whose JSON Schema is `@metacensus/library-ui/pdf/anchor.schema.json`, and `quadFromRect` and `quadsFromFractions` convert user-space rects and fractions of the displayed page into its quads.
+- Serve `dist/pdf-assets/` (the worker, wasm, cmaps, standard fonts and the ICC profiles for CMYK pages) from your own origin, copied again on each upgrade since pdf.js refuses a worker of another version, and name its URL once per page with `configurePdf({ assets: '/pdfjs/' })`. The page's CSP needs `script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'`, and no `unsafe-eval`.
 
 ## Brand tokens
 
@@ -152,6 +159,7 @@ Both are the public site's values. The guidelines state no shape yet; the pendin
 
 ```shell
 make deps
+make browsers
 make check
 ```
 

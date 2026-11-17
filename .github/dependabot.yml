@@ -1,0 +1,9 @@
+version: 2
+updates:
+  # pdf.js alone: each release is a pull request the browser specs gate.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: daily
+    allow:
+      - dependency-name: pdfjs-dist

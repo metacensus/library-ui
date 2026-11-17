@@ -1,4 +1,4 @@
-.PHONY: help deps lint typecheck format build test check release
+.PHONY: help deps browsers lint typecheck format build test test-browser check release
 .DEFAULT_GOAL := help
 
 help: ## — list the targets
@@ -6,6 +6,9 @@ help: ## — list the targets
 
 deps: ## — install from the lockfile
 	npm ci
+
+browsers: ## — install the Playwright engines and, on Linux, their system libraries
+	npx playwright install --with-deps chromium firefox webkit
 
 lint: ## — eslint
 	npm run -s lint
@@ -19,10 +22,13 @@ format: ## — prettier check
 build: ## — compile to dist
 	npm run -s build
 
-test: build ## — render the built package on the server
+test: build ## — the Node tests, against the built package
 	npm test
 
-check: lint typecheck format test ## — everything CI runs
+test-browser: build ## — the browser specs, in Chromium, Firefox and WebKit
+	npm run -s test:browser
+
+check: lint typecheck format test test-browser ## — everything CI runs
 
 release: ## — tag the next semver and push it: make release TYPE=patch|minor|major
 	@./scripts/release.sh "$(TYPE)"
