@@ -15,6 +15,7 @@ for (const path of [
   'wasm',
   'cmaps',
   'standard_fonts',
+  'iccs',
 ]) {
   cpSync(join(from, path), join(to, basename(path)), {
     recursive: true,

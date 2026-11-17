@@ -66,7 +66,7 @@ In `.astro` files, pass `Header`'s `nav` and `actions` as named slots; JSX props
 
 - A stored mark is a `PdfAnchor`: quads in PDF user space on a file named by its SHA-256, and the text they cover. `@metacensus/library-ui/pdf/anchor.schema.json` is its JSON Schema, for writers in other languages.
 - Convert stored rects once: `quadFromRect([x0, y0, x1, y1])` takes a user-space rect, and `quadsFromFractions(rects, page)` takes fractions `{ x, y, w, h }` of the displayed page, origin top-left, with pdf.js's `page` for its `view` and `rotate`.
-- Serve `dist/pdf-assets/` from your own origin, copied again on each upgrade since pdf.js refuses a worker of another version, and name its URL once per page with `configurePdf({ assets: '/pdfjs/' })`. The page's CSP needs `script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'`, and no `unsafe-eval`.
+- Serve `dist/pdf-assets/` (the worker, wasm, cmaps, standard fonts and the ICC profiles for CMYK pages) from your own origin, copied again on each upgrade since pdf.js refuses a worker of another version, and name its URL once per page with `configurePdf({ assets: '/pdfjs/' })`. The page's CSP needs `script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'`, and no `unsafe-eval`.
 
 ## Brand tokens
 

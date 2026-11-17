@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# Fails unless every non-merge commit in BASE..HEAD carries a Signed-off-by line.
+# Fails unless every non-merge commit in BASE..HEAD carries a Signed-off-by line,
+# Dependabot's aside.
 set -euo pipefail
 
 base=${1:?usage: dco.sh BASE_SHA}
 bad=0
 for sha in $(git rev-list --no-merges "$base"..HEAD); do
+  [[ $(git show -s --format=%an "$sha") == 'dependabot[bot]' ]] && continue
   if ! git show -s --format=%B "$sha" | grep -qE '^Signed-off-by: .+ <.+@.+>$'; then
     echo "missing Signed-off-by: $(git show -s --format='%h %s' "$sha")"
     bad=1
