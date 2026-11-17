@@ -1,6 +1,4 @@
-/** Where a mark lies on one file: a W3C Web Annotation target whose two
- *  selectors are alternatives for the same text. `anchor.schema.json` holds
- *  what the type cannot: the hash's form, eight points, a 1-based page. */
+/** `anchor.schema.json` holds the constraints the type cannot. */
 export type PdfAnchor = {
   source: { sha256: string }
   selector: (
@@ -14,13 +12,12 @@ export type PdfAnchor = {
   )[]
 }
 
-/** A user-space rect as a quad's points. */
+/** The rect is in PDF user space. */
 export function quadFromRect([x0, y0, x1, y1]: Rect): number[] {
   return [x0, y0, x1, y0, x1, y1, x0, y1].map(round)
 }
 
-/** Fractions of the displayed page, origin top-left, as quads' points.
- *  `view` and `rotate` are the page's, as pdf.js reports them. */
+/** Fractions of the displayed page, origin top-left, and pdf.js's page. */
 export function quadsFromFractions(
   rects: { x: number; y: number; w: number; h: number }[],
   { view, rotate }: { view: number[]; rotate: number },

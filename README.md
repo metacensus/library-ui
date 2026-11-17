@@ -64,8 +64,7 @@ In `.astro` files, pass `Header`'s `nav` and `actions` as named slots; JSX props
 
 `@metacensus/library-ui/pdf` is a separate entry point, so the main one never loads pdf.js.
 
-- A stored mark is a `PdfAnchor`: quads in PDF user space on a file named by its SHA-256, and the text they cover. `@metacensus/library-ui/pdf/anchor.schema.json` is its JSON Schema, for writers in other languages.
-- Convert stored rects once: `quadFromRect([x0, y0, x1, y1])` takes a user-space rect, and `quadsFromFractions(rects, page)` takes fractions `{ x, y, w, h }` of the displayed page, origin top-left, with pdf.js's `page` for its `view` and `rotate`.
+- A stored mark is a `PdfAnchor`, whose JSON Schema is `@metacensus/library-ui/pdf/anchor.schema.json`, and `quadFromRect` and `quadsFromFractions` convert user-space rects and fractions of the displayed page into its quads.
 - Serve `dist/pdf-assets/` (the worker, wasm, cmaps, standard fonts and the ICC profiles for CMYK pages) from your own origin, copied again on each upgrade since pdf.js refuses a worker of another version, and name its URL once per page with `configurePdf({ assets: '/pdfjs/' })`. The page's CSP needs `script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'`, and no `unsafe-eval`.
 
 ## Brand tokens

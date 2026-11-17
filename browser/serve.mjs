@@ -47,7 +47,9 @@ createServer((req, res) => {
   const file = fileFor(path)
   let size
   try {
-    size = statSync(file).size
+    const stats = statSync(file)
+    if (!stats.isFile()) throw new Error(`${path} is not a file`)
+    size = stats.size
   } catch {
     res.statusCode = 404
     return res.end()
@@ -62,4 +64,4 @@ createServer((req, res) => {
   res.setHeader('Accept-Ranges', 'bytes')
   res.setHeader('Content-Length', end - start + 1)
   createReadStream(file, { start, end }).pipe(res)
-}).listen(Number(process.argv[2]))
+}).listen(Number(process.argv[2]), 'localhost')
