@@ -29,23 +29,28 @@ import {
 const out = process.argv[2] ?? join(import.meta.dirname, '../browser/corpus')
 
 // pdf.js draws Helvetica with the Liberation Sans it ships, and the TrueType
-// files embed that font, so its ascent and descent bound every word's ink.
+// files embed that font, so its outlines bound every word's ink.
 const trueType = readFileSync(
   createRequire(import.meta.url).resolve(
     'pdfjs-dist/standard_fonts/LiberationSans-Regular.ttf',
   ),
 )
-const { ascent, descent, unitsPerEm } = fontkit.create(trueType)
+const liberation = fontkit.create(trueType)
 
 const round = (n) => Math.round(n * 100) / 100
 
-// A quad runs counter-clockwise from start-bottom, as the anchor's do. The
-// page is resolved to its number when the file is written.
-const target = (page, text, [x0, y0, x1, y1]) => ({
-  page,
-  points: [x0, y0, x1, y0, x1, y1, x0, y1].map(round),
-  text,
-})
+// A target's quad bounds the boxes [x0, y0, x1, y1] its word inks, and runs
+// counter-clockwise from start-bottom, as the anchor's do. The page is resolved
+// to its number when the file is written.
+const target = (page, text, boxes) => {
+  const [x0, y0] = [0, 1].map((i) => Math.min(...boxes.map((b) => b[i])))
+  const [x1, y1] = [2, 3].map((i) => Math.max(...boxes.map((b) => b[i])))
+  return {
+    page,
+    points: [x0, y0, x1, y0, x1, y1, x0, y1].map(round),
+    text,
+  }
+}
 
 const blackPage = (doc, size) => {
   const page = doc.addPage(size)
@@ -54,16 +59,22 @@ const blackPage = (doc, size) => {
   return page
 }
 
-// Draws `text` in red from (x, y) on its baseline, and bounds it by its
-// advance and the font's ascent and descent.
+// Draws `text` in red from (x, y) on its baseline.
 const word = (page, text, x, y, font, size = 24) => {
   page.drawText(text, { x, y, font, size, color: rgb(1, 0, 0) })
-  return target(page, text, [
-    x,
-    y + (descent / unitsPerEm) * size,
-    x + font.widthOfTextAtSize(text, size),
-    y + (ascent / unitsPerEm) * size,
-  ])
+  const unit = size / liberation.unitsPerEm
+  let pen = x
+  const boxes = liberation.layout(text).glyphs.map(({ bbox, advanceWidth }) => {
+    const box = [
+      pen + bbox.minX * unit,
+      y + bbox.minY * unit,
+      pen + bbox.maxX * unit,
+      y + bbox.maxY * unit,
+    ]
+    pen += advanceWidth * unit
+    return box
+  })
+  return target(page, text, boxes)
 }
 
 // Capitals built of rectangles [x, y, width, height] in a 1000-unit em: the
@@ -92,12 +103,15 @@ const capitals = {
   ],
 }
 
-const capitalsBox = (text, x, y, size, pad = 0) => [
-  x - pad,
-  y - pad,
-  x + (text.length * em.advance * size) / 1000 + pad,
-  y + (em.cap * size) / 1000 + pad,
-]
+// Each rectangle of `text` in capitals from (x, y), as [x0, y0, x1, y1].
+const capitalRects = (text, x, y, size) =>
+  [...text].flatMap((c, i) =>
+    capitals[c].map(([rx, ry, rw, rh]) =>
+      [i * em.advance + rx, ry, i * em.advance + rx + rw, ry + rh].map(
+        (v, j) => (j % 2 ? y : x) + (v * size) / 1000,
+      ),
+    ),
+  )
 
 const type3 = (doc) => {
   const codes = Object.keys(capitals).map((c) => c.charCodeAt(0))
@@ -145,24 +159,17 @@ const image = (page, ref, [x, y, width, height]) =>
     popGraphicsState(),
   )
 
-// A page scanned at `dpi` pixels per pt. Its truth is padded by a pixel, as an
-// OCR engine's would be.
+// A page scanned at `dpi` pixels per pt. Its truth bounds the red pixels, as
+// an OCR engine's would.
 const scan = (doc, text, [width, height], x, y, size, dpi = 2) => {
   const [w, h] = [width * dpi, height * dpi]
   const pixels = new Uint8Array(w * h * 3)
-  const unit = size / 1000
-  ;[...text].forEach((c, i) => {
-    for (const [rx, ry, rw, rh] of capitals[c]) {
-      const left = x + (i * em.advance + rx) * unit
-      const bottom = y + ry * unit
-      const [c0, c1] = [left, left + rw * unit].map((v) => Math.round(v * dpi))
-      const [r0, r1] = [bottom + rh * unit, bottom].map((v) =>
-        Math.round((height - v) * dpi),
-      )
-      for (let r = r0; r < r1; r++)
-        for (let col = c0; col < c1; col++) pixels[(r * w + col) * 3] = 255
-    }
-  })
+  const rects = capitalRects(text, x, y, size).map((rect) =>
+    rect.map((v) => Math.round(v * dpi) / dpi),
+  )
+  for (const [x0, y0, x1, y1] of rects)
+    for (let r = (height - y1) * dpi; r < (height - y0) * dpi; r++)
+      for (let c = x0 * dpi; c < x1 * dpi; c++) pixels[(r * w + c) * 3] = 255
   const page = doc.addPage([width, height])
   const ref = doc.context.register(
     doc.context.flateStream(pixels, {
@@ -175,7 +182,7 @@ const scan = (doc, text, [width, height], x, y, size, dpi = 2) => {
     }),
   )
   image(page, ref, [0, 0, width, height])
-  return target(page, text, capitalsBox(text, x, y, size, 1 / dpi))
+  return target(page, text, rects)
 }
 
 // 4 KB of dark noise, which no compression shrinks, so each page carries
@@ -254,7 +261,7 @@ const files = {
       endText(),
       popGraphicsState(),
     )
-    return [target(page, text, capitalsBox(text, x, y, size))]
+    return [target(page, text, capitalRects(text, x, y, size))]
   },
   'scan.pdf': async (doc) => [scan(doc, 'TILE', [300, 200], 30, 100, 60)],
   'thousand-pages.pdf': async (doc) => {

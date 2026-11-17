@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const port = 5919
+const port = Number(process.env.HARNESS_PORT ?? 5919)
 
 export default defineConfig({
   use: { baseURL: `http://localhost:${port}` },
