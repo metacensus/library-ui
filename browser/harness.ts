@@ -1,5 +1,6 @@
 import { createElement, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
+import * as documents from '../src/pdf/document.js'
 import * as pdf from '../src/pdf/index.js'
 
 const violations: string[] = []
@@ -11,6 +12,7 @@ const root = createRoot(document.getElementById('root')!)
 
 const harness = {
   pdf,
+  documents,
   pdfjs: () => import('pdfjs-dist'),
   h: createElement,
   mount: (node: ReactNode) => root.render(node),
