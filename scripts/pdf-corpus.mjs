@@ -39,16 +39,35 @@ const liberation = fontkit.create(trueType)
 
 const round = (n) => Math.round(n * 100) / 100
 
-// A target's quad bounds the boxes [x0, y0, x1, y1] its word inks, and runs
-// counter-clockwise from start-bottom, as the anchor's do. The page is resolved
-// to its number when the file is written.
-const target = (page, text, boxes) => {
-  const [x0, y0] = [0, 1].map((i) => Math.min(...boxes.map((b) => b[i])))
-  const [x1, y1] = [2, 3].map((i) => Math.max(...boxes.map((b) => b[i])))
+// A target bounds the boxes [x0, y0, x1, y1] its word inks.
+const target = (page, text, boxes) => ({
+  page,
+  text,
+  rect: [0, 1, 2, 3].map((i) =>
+    (i < 2 ? Math.min : Math.max)(...boxes.map((b) => b[i])),
+  ),
+})
+
+// A target's truth: its quad, counter-clockwise from start-bottom as the
+// anchor's, and `screen`, its box as the page shows it at scale 1 in CSS px from
+// the top left, worked out here rather than by pdf.js.
+const truth = ({ page, text, rect: [x0, y0, x1, y1] }) => {
+  const crop = page.getCropBox()
+  const unit = page.node.get(PDFName.of('UserUnit'))?.asNumber() ?? 1
+  const [w, h] = [crop.width * unit, crop.height * unit]
+  const [left, right] = [x0, x1].map((x) => (x - crop.x) * unit)
+  const [top, bottom] = [y1, y0].map((y) => (crop.y + crop.height - y) * unit)
+  const [l, t, r, b] = {
+    0: [left, top, right, bottom],
+    90: [h - bottom, left, h - top, right],
+    180: [w - right, h - bottom, w - left, h - top],
+    270: [top, w - right, bottom, w - left],
+  }[page.getRotation().angle].map(round)
   return {
-    page,
+    page: page.doc.getPages().indexOf(page) + 1,
     points: [x0, y0, x1, y0, x1, y1, x0, y1].map(round),
     text,
+    screen: { left: l, top: t, right: r, bottom: b },
   }
 }
 
@@ -60,7 +79,8 @@ const blackPage = (doc, size) => {
 }
 
 // Draws `text` in red from (x, y) on its baseline.
-const word = (page, text, x, y, font, size = 24) => {
+const word = (page, text, x, y, font) => {
+  const size = 24
   page.drawText(text, { x, y, font, size, color: rgb(1, 0, 0) })
   const unit = size / liberation.unitsPerEm
   let pen = x
@@ -150,7 +170,6 @@ const type3 = (doc) => {
   )
 }
 
-// An image XObject drawn over the rectangle [x, y, width, height].
 const image = (page, ref, [x, y, width, height]) =>
   page.pushOperators(
     pushGraphicsState(),
@@ -159,9 +178,9 @@ const image = (page, ref, [x, y, width, height]) =>
     popGraphicsState(),
   )
 
-// A page scanned at `dpi` pixels per pt. Its truth bounds the red pixels, as
-// an OCR engine's would.
-const scan = (doc, text, [width, height], x, y, size, dpi = 2) => {
+// Its truth bounds the image's red pixels, as an OCR engine's would.
+const scan = (doc, text, [width, height], x, y, size) => {
+  const dpi = 2 // image pixels per pt
   const [w, h] = [width * dpi, height * dpi]
   const pixels = new Uint8Array(w * h * 3)
   const rects = capitalRects(text, x, y, size).map((rect) =>
@@ -295,12 +314,7 @@ mkdirSync(out, { recursive: true })
 for (const [name, build] of Object.entries(files)) {
   const doc = await PDFDocument.create({ updateMetadata: false })
   doc.registerFontkit(fontkit)
-  const found = await build(doc)
-  const pages = doc.getPages()
-  const targets = found.map(({ page, ...rest }) => ({
-    page: pages.indexOf(page) + 1,
-    ...rest,
-  }))
+  const targets = (await build(doc)).map(truth)
   writeFileSync(join(out, name), await doc.save())
   writeFileSync(
     join(out, name.replace(/\.pdf$/, '.json')),

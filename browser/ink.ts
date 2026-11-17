@@ -1,12 +1,8 @@
 import type { PageViewport } from 'pdfjs-dist'
 
-/** Edges in pixels from the top left. */
-export type Box = { left: number; top: number; right: number; bottom: number }
+type Box = { left: number; top: number; right: number; bottom: number }
 
-/**
- * The bounds of the pixels on `canvas` painted at least half in `rgb` over
- * black, in the canvas's own pixels; null when there are none.
- */
+/** The bounds of the pixels on `canvas` at least half `rgb` over black. */
 export function inkBox(
   canvas: HTMLCanvasElement,
   [r, g, b]: readonly [number, number, number],
@@ -36,10 +32,7 @@ export function inkBox(
   return box.right ? box : null
 }
 
-/**
- * The bounds on screen of a quad's eight numbers in PDF user space, in CSS px
- * on `viewport`.
- */
+/** A quad's bounds on `viewport`, in its px. */
 export function truthBox(viewport: PageViewport, quad: readonly number[]): Box {
   const corners = [0, 2, 4, 6].map((i) =>
     viewport.convertToViewportPoint(quad[i]!, quad[i + 1]!),
