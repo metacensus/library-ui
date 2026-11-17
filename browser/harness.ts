@@ -1,5 +1,6 @@
 import { createElement, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
+import * as documents from '../src/pdf/document.js'
 import * as pdf from '../src/pdf/index.js'
 import * as ink from './ink.js'
 
@@ -12,6 +13,7 @@ const root = createRoot(document.getElementById('root')!)
 
 const harness = {
   pdf,
+  documents,
   ink,
   pdfjs: () => import('pdfjs-dist'),
   h: createElement,
