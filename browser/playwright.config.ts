@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const port = 5919
+const port = Number(process.env.HARNESS_PORT ?? 5919)
 
 export default defineConfig({
   use: { baseURL: `http://localhost:${port}` },
@@ -10,7 +10,7 @@ export default defineConfig({
     { name: 'webkit', use: devices['Desktop Safari'] },
   ],
   webServer: {
-    command: `node serve.mjs ${port}`,
+    command: `node ../scripts/pdf-corpus.mjs && node serve.mjs ${port}`,
     url: `http://localhost:${port}`,
   },
 })
