@@ -6,22 +6,26 @@ import type {
 import { assets } from './assets.js'
 import type { PdfError, PdfSource } from './index.js'
 
-/** One hold on a shared document. Release it once. */
-export type Lease = {
-  /** Rejects with a `PdfError`. */
+/** One hold on a shared document. `document` rejects with a `PdfError`. */
+type Lease = {
   document: Promise<PDFDocumentProxy>
   release: () => void
 }
 
 export function open(source: PdfSource): Lease {
   const held = sha256(source).then((key) => {
-    const entry = documents.get(key) ?? load(key, source)
+    const entry = registry.get(key) ?? load(key, source)
     entry.holds++
     return entry
   })
+  let released = false
   return {
     document: held.then((entry) => entry.document),
-    release: () => void held.then(release, () => {}),
+    release: () => {
+      if (released) return
+      released = true
+      void held.then(release, () => {})
+    },
   }
 }
 
@@ -32,22 +36,28 @@ type Entry = {
   document: Promise<PDFDocumentProxy>
 }
 
-const documents = new Map<string, Entry>()
+const registry = new Map<string, Entry>()
 
+// A destroyed loading task never settles, so a lost range settles the document.
 function load(key: string, source: PdfSource): Entry {
-  const task = start(source, () => close(entry))
+  let lose!: (error: PdfError) => void
+  const lost = new Promise<never>((_, reject) => (lose = reject))
+  const task = start(source, (error) => {
+    lose(error)
+    close(entry)
+  })
   const entry: Entry = {
     key,
     holds: 0,
     task,
-    document: task
-      .then((task) => task.promise)
-      .catch((error) => {
+    document: Promise.race([task.then((task) => task.promise), lost]).catch(
+      (error) => {
         close(entry)
         throw typed(error)
-      }),
+      },
+    ),
   }
-  documents.set(key, entry)
+  registry.set(key, entry)
   return entry
 }
 
@@ -60,7 +70,7 @@ function release(entry: Entry) {
 }
 
 function close(entry: Entry) {
-  if (documents.get(entry.key) === entry) documents.delete(entry.key)
+  if (registry.get(entry.key) === entry) registry.delete(entry.key)
   void entry.task.then(
     (task) => task.destroy(),
     () => {},
@@ -71,7 +81,7 @@ type Pdfjs = typeof import('pdfjs-dist')
 
 async function start(
   source: PdfSource,
-  lost: () => void,
+  lost: (error: PdfError) => void,
 ): Promise<PDFDocumentLoadingTask> {
   if (!assets) throw failure('assets', 'configurePdf was not called')
   const pdfjs = await import('pdfjs-dist')
@@ -103,6 +113,7 @@ function shared(pdfjs: Pdfjs): Promise<PDFWorker> {
       await made.promise
       return made
     } catch (error) {
+      made.destroy()
       worker = undefined
       throw failure('assets', (error as Error).message)
     }
@@ -114,45 +125,58 @@ type UrlSource = Extract<PdfSource, { url: string }>
 
 const chunk = 65536
 
-async function fromUrl(pdfjs: Pdfjs, source: UrlSource, lost: () => void) {
+async function fromUrl(
+  pdfjs: Pdfjs,
+  source: UrlSource,
+  lost: (error: PdfError) => void,
+) {
   const first = await get(source, `bytes=0-${chunk - 1}`)
-  const length =
-    first.status === 206 &&
-    Number(first.headers.get('Content-Range')?.split('/')[1])
-  if (!length) {
-    const whole = first.status === 206 ? await get(source) : first
-    return { data: new Uint8Array(await whole.arrayBuffer()) }
-  }
-  const range = new pdfjs.PDFDataRangeTransport(
-    length,
-    new Uint8Array(await first.arrayBuffer()),
-  )
+  const length = first.status === 206 && Number(first.answer?.split('/')[1])
+  if (!length)
+    return {
+      data: first.status === 206 ? (await get(source)).bytes : first.bytes,
+    }
+  const range = new pdfjs.PDFDataRangeTransport(length, first.bytes)
   const aborted = new AbortController()
   range.abort = () => aborted.abort()
-  range.requestDataRange = (begin, end) =>
-    get(source, `bytes=${begin}-${end - 1}`, aborted.signal)
-      .then((response) => response.arrayBuffer())
-      .then((bytes) => range.onDataRange(begin, new Uint8Array(bytes)), lost)
+  range.requestDataRange = (begin, end) => {
+    const asked = `${begin}-${end - 1}`
+    get(source, `bytes=${asked}`, aborted.signal)
+      .then(({ status, answer, bytes }) => {
+        if (status !== 206 || !answer?.startsWith(`bytes ${asked}/`))
+          throw failure('fetch', `range ${asked} answered ${status} ${answer}`)
+        return bytes
+      })
+      .then((bytes) => range.onDataRange(begin, bytes), lost)
+  }
   return { range }
 }
 
-async function get(
-  source: UrlSource,
-  range?: string,
-  signal?: AbortSignal,
-): Promise<Response> {
+async function get(source: UrlSource, range?: string, signal?: AbortSignal) {
   const request = async () => {
     const headers = new Headers(await source.headers?.())
-    if (range) headers.set('Range', range)
-    return fetch(source.url, { headers, signal }).catch((error: Error) => {
-      throw failure('fetch', error.message)
+    headers.forEach((_, name) => {
+      if (name !== 'authorization')
+        throw failure('fetch', `headers() may not set ${name}`)
     })
+    if (range) headers.set('Range', range)
+    return fetch(source.url, { headers, signal })
   }
-  let response = await request()
-  if (response.status === 401) response = await request()
-  if (!response.ok)
-    throw failure('fetch', `HTTP ${response.status}`, response.status)
-  return response
+  try {
+    let response = await request()
+    if (response.status === 401) response = await request()
+    if (!response.ok)
+      throw failure('fetch', `HTTP ${response.status}`, response.status)
+    return {
+      status: response.status,
+      answer: response.headers.get('Content-Range'),
+      bytes: new Uint8Array(await response.arrayBuffer()),
+    }
+  } catch (error) {
+    throw 'kind' in Object(error)
+      ? error
+      : failure('fetch', (error as Error).message)
+  }
 }
 
 // A re-render that passes the same bytes finds its hash within the tick.
@@ -161,6 +185,8 @@ const hashes = new WeakMap<Uint8Array, Promise<string>>()
 async function sha256(source: PdfSource): Promise<string> {
   if ('url' in source) return source.sha256
   if (source.sha256) return source.sha256
+  if (!globalThis.crypto?.subtle)
+    throw failure('assets', 'hashing bytes needs a secure context')
   let hash = hashes.get(source.data)
   if (!hash) {
     hash = crypto.subtle
@@ -183,6 +209,9 @@ const failure = (
 
 function typed(error: unknown): PdfError {
   if (error instanceof Error && 'kind' in error) return error as PdfError
-  const { name, message } = error as Error
-  return failure(name === 'PasswordException' ? 'password' : 'invalid', message)
+  const { name, message } = Object(error) as Partial<Error>
+  return failure(
+    name === 'PasswordException' ? 'password' : 'invalid',
+    message ?? String(error),
+  )
 }

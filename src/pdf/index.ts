@@ -7,11 +7,12 @@ export type PdfSource =
   | {
       url: string
       sha256: string
+      /** `Authorization` only, which fetch drops at a cross-origin redirect. */
       headers?: () => HeadersInit | Promise<HeadersInit>
     }
   | {
       data: Uint8Array
-      /** Hashed by the component when absent. */
+      /** Hashed on open when absent. */
       sha256?: string
     }
 

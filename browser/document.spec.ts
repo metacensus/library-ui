@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { createHash } from 'node:crypto'
+import { createServer } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import {
   PDFDocument,
   PDFHexString,
@@ -8,7 +10,7 @@ import {
   StandardFonts,
 } from 'pdf-lib'
 
-/** Each page carries a block of digits, so the file is mostly page content. */
+/** Mostly page content, as a paper is. */
 async function generate(pages: number, edit?: (file: PDFDocument) => void) {
   const file = await PDFDocument.create()
   const font = await file.embedFont(StandardFonts.Helvetica)
@@ -31,56 +33,79 @@ const sha256 = (bytes: Uint8Array) =>
 
 type Served = { range?: string; authorization?: string; bytes: number }
 
-/**
- * Serves `bytes` at /file.pdf, by range unless `ranges` is false. `refuse`
- * answers a request with a status of its own.
- */
+/** By range, unless `status` answers otherwise: `200` sends the whole file. */
+function respond(bytes: Uint8Array, request: Served, status?: number) {
+  if (status && status !== 200) return { status }
+  const [, first, last] = /^bytes=(\d+)-(\d+)$/.exec(request.range ?? '') ?? []
+  if (status === 200 || !first) {
+    request.bytes = bytes.length
+    return { status: 200, body: Buffer.from(bytes) }
+  }
+  const start = Number(first)
+  const body = Buffer.from(bytes.subarray(start, Number(last) + 1))
+  request.bytes = body.length
+  const end = start + body.length - 1
+  return {
+    status: 206,
+    headers: { 'Content-Range': `bytes ${start}-${end}/${bytes.length}` },
+    body,
+  }
+}
+
 async function serve(
   page: Page,
   bytes: Uint8Array,
-  {
-    ranges = true,
-    refuse,
-  }: {
-    ranges?: boolean
-    refuse?: (request: Served) => number | undefined
-  } = {},
+  status?: (request: Served) => number | undefined,
 ) {
   const served: Served[] = []
   await page.route('**/file.pdf', (route) => {
     const { range, authorization } = route.request().headers()
     const request: Served = { range, authorization, bytes: 0 }
     served.push(request)
-    const status = refuse?.(request)
-    if (status) return route.fulfill({ status })
-    const [, start, end] = /^bytes=(\d+)-(\d+)$/.exec(range ?? '') ?? []
-    if (!ranges || !start) {
-      request.bytes = bytes.length
-      return route.fulfill({ body: Buffer.from(bytes) })
-    }
-    const body = bytes.subarray(Number(start), Number(end) + 1)
-    request.bytes = body.length
-    return route.fulfill({
-      status: 206,
-      headers: { 'Content-Range': `bytes ${start}-${end}/${bytes.length}` },
-      body: Buffer.from(body),
-    })
+    return route.fulfill(respond(bytes, request, status?.(request)))
   })
   return served
 }
 
-/** Opens the URL source, counting calls to `headers()`, and settles. */
-function openUrl(page: Page, hash: string, showing = 1) {
+async function signedLink(bytes: Uint8Array) {
+  const served: Served[] = []
+  const cors = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Range',
+    'Access-Control-Expose-Headers': 'Content-Range',
+  }
+  const server = createServer((req, res) => {
+    const { range, authorization } = req.headers
+    const request: Served = { range, authorization, bytes: 0 }
+    if (req.method !== 'OPTIONS') served.push(request)
+    const { status, headers, body } =
+      req.method === 'OPTIONS' ? { status: 204 } : respond(bytes, request)
+    res.writeHead(status, { ...cors, ...headers }).end(body)
+  })
+  await new Promise<void>((listening) =>
+    server.listen(0, '127.0.0.1', listening),
+  )
+  const { port } = server.address() as AddressInfo
+  return { served, server, url: `http://127.0.0.1:${port}/signed?sig=1` }
+}
+
+function show(
+  page: Page,
+  source: { hash: string } | { bytes: Uint8Array },
+  showing = 1,
+) {
   return page.evaluate(
-    async ({ hash, showing }) => {
-      const { pdf, documents } = window.harness
-      pdf.configurePdf({ assets: '/pdf-assets/' })
+    async ({ hash, bytes, showing }) => {
       let calls = 0
-      const lease = documents.open({
-        url: '/file.pdf',
-        sha256: hash,
-        headers: () => ({ Authorization: `Bearer ${++calls}` }),
-      })
+      const lease = window.harness.documents.open(
+        bytes
+          ? { data: new Uint8Array(bytes) }
+          : {
+              url: '/file.pdf',
+              sha256: hash!,
+              headers: () => ({ Authorization: `Bearer ${++calls}` }),
+            },
+      )
       try {
         const file = await lease.document
         const shown = await file.getPage(showing)
@@ -95,27 +120,19 @@ function openUrl(page: Page, hash: string, showing = 1) {
         return { calls, kind, status }
       }
     },
-    { hash, showing },
-  )
-}
-
-/** Opens bytes and settles to the error's kind, or to `opened`. */
-function openBytes(page: Page, bytes: Uint8Array, configure = true) {
-  return page.evaluate(
-    async ({ bytes, configure }) => {
-      const { pdf, documents } = window.harness
-      if (configure) pdf.configurePdf({ assets: '/pdf-assets/' })
-      return documents.open({ data: new Uint8Array(bytes) }).document.then(
-        () => 'opened',
-        (error: { kind: string }) => error.kind,
-      )
+    {
+      hash: 'hash' in source ? source.hash : undefined,
+      bytes: 'bytes' in source ? [...source.bytes] : undefined,
+      showing,
     },
-    { bytes: [...bytes], configure },
   )
 }
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
+  await page.evaluate(() =>
+    window.harness.pdf.configurePdf({ assets: '/pdf-assets/' }),
+  )
 })
 
 test('one worker serves every file, and one document every open of a hash', async ({
@@ -132,15 +149,16 @@ test('one worker serves every file, and one document every open of a hash', asyn
           workers++
         }
       }
-      const { pdf, documents } = window.harness
-      pdf.configurePdf({ assets: '/pdf-assets/' })
+      const { documents } = window.harness
       const a = documents.open({ data: new Uint8Array(one) })
       const b = documents.open({ data: new Uint8Array(one), sha256: hash })
       const other = new Uint8Array(two)
       const c = documents.open({ data: other })
-      const [fileA, fileB, fileC] = await Promise.all(
-        [a, b, c].map((lease) => lease.document),
-      )
+      const [fileA, fileB, fileC] = await Promise.all([
+        a.document,
+        b.document,
+        c.document,
+      ])
       a.release()
       b.release()
       c.release()
@@ -152,8 +170,8 @@ test('one worker serves every file, and one document every open of a hash', asyn
         shared: fileA === fileB,
         distinct: fileA !== fileC,
         intact: other.byteLength === two.length,
-        destroyed: fileA!.loadingTask.destroyed,
-        reused: fileD === fileC && !fileC!.loadingTask.destroyed,
+        destroyed: fileA.loadingTask.destroyed,
+        reused: fileD === fileC && !fileC.loadingTask.destroyed,
       }
     },
     { one, two, hash: sha256(new Uint8Array(one)) },
@@ -168,73 +186,110 @@ test('one worker serves every file, and one document every open of a hash', asyn
   })
 })
 
+test('a lease released twice releases once', async ({ page }) => {
+  const bytes = [...(await generate(1))]
+  const destroyed = await page.evaluate(async (bytes) => {
+    const { documents } = window.harness
+    const data = new Uint8Array(bytes)
+    const [a, b] = [documents.open({ data }), documents.open({ data })]
+    const file = await b.document
+    const settle = () => new Promise((settled) => setTimeout(settled, 100))
+    a.release()
+    a.release()
+    await settle()
+    const kept = !file.loadingTask.destroyed
+    b.release()
+    await settle()
+    return [kept, file.loadingTask.destroyed]
+  }, bytes)
+  expect(destroyed).toEqual([true, true])
+})
+
 test('page 500 of 1,000 shows after fetching under 10% of the file, by ranges with fresh headers', async ({
   page,
 }) => {
   const bytes = await generate(1000)
   const served = await serve(page, bytes)
-  const opened = await openUrl(page, sha256(bytes), 500)
-  expect(opened.pages).toBe(1000)
+  const shown = await show(page, { hash: sha256(bytes) }, 500)
+  expect(shown.pages).toBe(1000)
   expect(served.every((request) => request.range)).toBe(true)
   const fetched = served.reduce((sum, request) => sum + request.bytes, 0)
   expect(fetched).toBeLessThan(bytes.length / 10)
   const tokens = new Set(served.map((request) => request.authorization))
-  expect([tokens.size, opened.calls]).toEqual([served.length, served.length])
+  expect([tokens.size, shown.calls]).toEqual([served.length, served.length])
 })
 
-test('a range failing after open drops the document, so a re-open loads afresh', async ({
+test('a 302 to a signed link on another origin keeps Range and drops Authorization', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(browserName === 'webkit', 'Playwright cannot fulfill a 302 there')
+  const bytes = await generate(1000)
+  const signed = await signedLink(bytes)
+  const hops: Served[] = []
+  await page.route('**/file.pdf', (route) => {
+    const { range, authorization } = route.request().headers()
+    hops.push({ range, authorization, bytes: 0 })
+    return route.fulfill({ status: 302, headers: { Location: signed.url } })
+  })
+  const shown = await show(page, { hash: sha256(bytes) }, 500)
+  signed.server.close()
+  expect(shown.pages).toBe(1000)
+  expect(hops.every((hop) => hop.range && hop.authorization)).toBe(true)
+  expect(signed.served.every((hop) => hop.range && !hop.authorization)).toBe(
+    true,
+  )
+  expect(signed.served.length).toBe(hops.length)
+  const fetched = signed.served.reduce((sum, hop) => sum + hop.bytes, 0)
+  expect(fetched).toBeLessThan(bytes.length / 10)
+})
+
+test('a 401 mid-read asks for headers again and the page still shows', async ({
   page,
 }) => {
   const bytes = await generate(1000)
-  let failing = false
-  await serve(page, bytes, { refuse: () => (failing ? 500 : undefined) })
-  const url = { url: '/file.pdf', sha256: sha256(bytes) }
-  const first = await page.evaluateHandle((url) => {
-    window.harness.pdf.configurePdf({ assets: '/pdf-assets/' })
-    return window.harness.documents.open(url).document
-  }, url)
-  failing = true
-  const shown = await first.evaluate((file) =>
-    file
-      .getPage(500)
-      .then((shown) => {
-        const viewport = shown.getViewport({ scale: 1 })
-        const canvas = document.createElement('canvas')
-        return shown.render({ canvas, viewport }).promise
-      })
-      .then(
-        () => 'shown',
-        () => 'lost',
-      ),
-  )
-  failing = false
-  const fresh = await first.evaluate(
-    async (file, url) =>
-      (await window.harness.documents.open(url).document) !== file,
-    url,
-  )
-  expect([shown, fresh]).toEqual(['lost', true])
+  let n = 0
+  const served = await serve(page, bytes, () => (++n === 2 ? 401 : undefined))
+  const shown = await show(page, { hash: sha256(bytes) }, 500)
+  expect(shown).toEqual({ calls: served.length, pages: 1000 })
 })
+
+for (const status of [500, 200]) {
+  test(`a range answered ${status} after the first rejects as fetch, and a re-open loads afresh`, async ({
+    page,
+  }) => {
+    const bytes = await generate(1000)
+    let failing = true
+    let n = 0
+    await serve(page, bytes, () => (failing && ++n > 1 ? status : undefined))
+    const hash = sha256(bytes)
+    expect(await show(page, { hash }, 500)).toMatchObject({ kind: 'fetch' })
+    failing = false
+    expect(await show(page, { hash }, 500)).toMatchObject({ pages: 1000 })
+  })
+}
 
 test('a server without ranges still opens the file', async ({ page }) => {
   const bytes = await generate(3)
-  await serve(page, bytes, { ranges: false })
-  expect((await openUrl(page, sha256(bytes))).pages).toBe(3)
+  await serve(page, bytes, () => 200)
+  expect((await show(page, { hash: sha256(bytes) })).pages).toBe(3)
 })
 
 test('a 401 asks for headers again and retries once', async ({ page }) => {
   const bytes = await generate(1)
-  await serve(page, bytes, {
-    refuse: ({ authorization }) =>
-      authorization === 'Bearer 1' ? 401 : undefined,
+  await serve(page, bytes, ({ authorization }) =>
+    authorization === 'Bearer 1' ? 401 : undefined,
+  )
+  expect(await show(page, { hash: sha256(bytes) })).toEqual({
+    calls: 2,
+    pages: 1,
   })
-  expect(await openUrl(page, sha256(bytes))).toEqual({ calls: 2, pages: 1 })
 })
 
 test('a second 401 rejects as fetch', async ({ page }) => {
   const bytes = await generate(1)
-  await serve(page, bytes, { refuse: () => 401 })
-  expect(await openUrl(page, sha256(bytes))).toEqual({
+  await serve(page, bytes, () => 401)
+  expect(await show(page, { hash: sha256(bytes) })).toEqual({
     calls: 2,
     kind: 'fetch',
     status: 401,
@@ -243,40 +298,63 @@ test('a second 401 rejects as fetch', async ({ page }) => {
 
 test('a 404 rejects as fetch with its status', async ({ page }) => {
   const bytes = await generate(1)
-  await serve(page, bytes, { refuse: () => 404 })
-  expect(await openUrl(page, sha256(bytes))).toEqual({
+  await serve(page, bytes, () => 404)
+  expect(await show(page, { hash: sha256(bytes) })).toEqual({
     calls: 1,
     kind: 'fetch',
     status: 404,
   })
 })
 
-test('garbage rejects as invalid, encryption as password, and no assets as assets', async ({
+test('headers() setting another header, or throwing, rejects as fetch', async ({
+  page,
+}) => {
+  const bytes = await generate(1)
+  const served = await serve(page, bytes)
+  const kinds = await page.evaluate(async (hash) => {
+    const kind = (headers: () => HeadersInit) =>
+      window.harness.documents
+        .open({ url: '/file.pdf', sha256: hash, headers })
+        .document.then(
+          () => 'opened',
+          (error: { kind: string }) => error.kind,
+        )
+    return [
+      await kind(() => ({ 'X-Api-Key': 'key' })),
+      await kind(() => {
+        throw new Error('no token')
+      }),
+    ]
+  }, sha256(bytes))
+  expect(kinds).toEqual(['fetch', 'fetch'])
+  expect(served).toEqual([])
+})
+
+test('garbage, encryption, no assets and no hashing each reject typed', async ({
   page,
 }) => {
   const garbage = new Uint8Array(4096).map((_, i) => (i * 7919) % 251)
-  const encrypted = await generate(1, (file) => {
-    const { context } = file
+  const encrypted = await generate(1, ({ context }) => {
     context.trailerInfo.Encrypt = context.register(
       context.obj({
         Filter: 'Standard',
         V: 1,
         R: 2,
-        Length: 40,
         P: -4,
         O: PDFHexString.of('01'.repeat(32)),
         U: PDFHexString.of('02'.repeat(32)),
       }),
     )
-    context.trailerInfo.ID = context.obj([
-      PDFHexString.of('03'.repeat(16)),
-      PDFHexString.of('03'.repeat(16)),
-    ])
   })
-  expect(await openBytes(page, garbage)).toBe('invalid')
-  expect(await openBytes(page, encrypted)).toBe('password')
+  const kind = async (bytes: Uint8Array) => (await show(page, { bytes })).kind
+  expect(await kind(garbage)).toBe('invalid')
+  expect(await kind(encrypted)).toBe('password')
+  await page.evaluate(() =>
+    Object.defineProperty(window.crypto, 'subtle', { value: undefined }),
+  )
+  expect(await kind(await generate(1))).toBe('assets')
   await page.reload()
-  expect(await openBytes(page, await generate(1), false)).toBe('assets')
+  expect(await kind(await generate(1))).toBe('assets')
 })
 
 test('document JavaScript never runs, under the CSP', async ({ page }) => {
@@ -288,12 +366,27 @@ test('document JavaScript never runs, under the CSP', async ({ page }) => {
   const bytes = await generate(1, (file) => {
     const script = file.context.obj({
       S: 'JavaScript',
-      JS: PDFString.of('app.alert("document script ran")'),
+      JS: PDFString.of(
+        "globalThis.documentScriptRan = true; app.alert('document script ran')",
+      ),
     })
     file.catalog.set(PDFName.of('OpenAction'), file.context.register(script))
   })
   await serve(page, bytes)
-  expect(await openUrl(page, sha256(bytes))).toEqual({ calls: 1, pages: 1 })
-  expect(await page.evaluate(() => window.harness.violations)).toEqual([])
+  const hash = sha256(bytes)
+  expect(await show(page, { hash })).toEqual({ calls: 1, pages: 1 })
+  const after = await page.evaluate(async (hash) => {
+    const lease = window.harness.documents.open({
+      url: '/file.pdf',
+      sha256: hash,
+    })
+    const actions = await (await lease.document).getJSActions()
+    return {
+      carried: String(actions?.get('OpenAction')).includes('ScriptRan'),
+      ran: 'documentScriptRan' in window,
+      violations: window.harness.violations,
+    }
+  }, hash)
+  expect(after).toEqual({ carried: true, ran: false, violations: [] })
   expect(dialogs).toEqual([])
 })
