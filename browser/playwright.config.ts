@@ -10,7 +10,7 @@ export default defineConfig({
     { name: 'webkit', use: devices['Desktop Safari'] },
   ],
   webServer: {
-    command: `node serve.mjs ${port}`,
+    command: `node ../scripts/pdf-corpus.mjs && node serve.mjs ${port}`,
     url: `http://localhost:${port}`,
   },
 })

@@ -1,6 +1,7 @@
 import { createElement, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import * as pdf from '../src/pdf/index.js'
+import * as ink from './ink.js'
 
 const violations: string[] = []
 document.addEventListener('securitypolicyviolation', (e) =>
@@ -11,6 +12,7 @@ const root = createRoot(document.getElementById('root')!)
 
 const harness = {
   pdf,
+  ink,
   pdfjs: () => import('pdfjs-dist'),
   h: createElement,
   mount: (node: ReactNode) => root.render(node),
