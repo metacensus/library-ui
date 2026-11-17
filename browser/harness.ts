@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client'
 import * as documents from '../src/pdf/document.js'
 import * as pdf from '../src/pdf/index.js'
 import * as ink from './ink.js'
+import '../src/css/tokens.css'
+import '../src/css/styles.css'
+import '../src/css/pdf.css'
 
 const violations: string[] = []
 document.addEventListener('securitypolicyviolation', (e) =>

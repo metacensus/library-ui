@@ -1,3 +1,159 @@
-/* #36 fills this layer. */
+/* The PDF components. They read the roles in tokens.css. */
 @layer mc {
+  :root {
+    --mc-pdf-mark: var(--mc-line-accent);
+  }
+
+  .mc-pdf-page {
+    display: block;
+    print-color-adjust: exact;
+  }
+  .mc-pdf-view {
+    position: relative;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .mc-pdf-page[aria-busy='true'] .mc-pdf-view:not([style]) {
+    aspect-ratio: 612 / 792;
+  }
+  .mc-pdf-view > canvas {
+    display: block;
+  }
+
+  /* Marks: drawn in CSS px, so their gap off the glyphs holds at every zoom. */
+  .mc-pdf-marks {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .mc-pdf-mark {
+    color: var(--mc-pdf-color, var(--mc-pdf-mark));
+    outline: none;
+  }
+  .mc-pdf-shape {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2px;
+  }
+  .mc-pdf-fill .mc-pdf-shape {
+    fill: currentColor;
+    fill-opacity: 0.3;
+    stroke: none;
+    mix-blend-mode: multiply;
+  }
+  .mc-pdf-fill[aria-current] .mc-pdf-shape {
+    fill-opacity: 0.5;
+  }
+  .mc-pdf-outline[aria-current] .mc-pdf-shape,
+  .mc-pdf-dashed[aria-current] .mc-pdf-shape {
+    stroke-width: 3px;
+  }
+  .mc-pdf-dashed .mc-pdf-shape {
+    stroke-dasharray: 6px 4px;
+  }
+  .mc-pdf-underline .mc-pdf-shape {
+    stroke-width: 3px;
+  }
+  .mc-pdf-underline[aria-current] .mc-pdf-shape {
+    stroke-width: 4px;
+  }
+  .mc-pdf-ring {
+    fill: none;
+    stroke: none;
+    stroke-width: 2px;
+  }
+  .mc-pdf-mark:focus-visible .mc-pdf-ring {
+    stroke: var(--mc-ink-accent);
+  }
+
+  /* Ink on card, so a caller's colour never sets the text's contrast. */
+  .mc-pdf-badge,
+  .mc-pdf-tag {
+    position: absolute;
+    transform-origin: 0 0;
+    padding: 0 0.25em;
+    border: 1px solid var(--mc-pdf-color, var(--mc-pdf-mark));
+    border-radius: 3px;
+    background: var(--mc-card);
+    color: var(--mc-ink);
+    font-size: 11px;
+    line-height: 1.3;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .mc-pdf-badge {
+    transform: translateY(-100%);
+  }
+  .mc-pdf-tag {
+    transform: translate(-100%, -100%);
+  }
+
+  @media (forced-colors: active) {
+    .mc-pdf-shape,
+    .mc-pdf-fill .mc-pdf-shape {
+      fill: none;
+      stroke: Highlight;
+      stroke-width: 2px;
+      mix-blend-mode: normal;
+    }
+  }
+
+  /* The text layer pdf.js lays out: transparent text over the canvas, for
+     selection and reading. Adapted from pdfjs-dist/web/pdf_viewer.css,
+     Copyright 2014 Mozilla Foundation, Apache-2.0. */
+  .mc-pdf-text {
+    --scale-round-x: 1px;
+    --scale-round-y: 1px;
+    --min-font-size: 1;
+    --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+    --min-font-size-inv: calc(1 / var(--min-font-size));
+    position: absolute;
+    inset: 0;
+    overflow: clip;
+    color-scheme: only light;
+    text-align: initial;
+    line-height: 1;
+    letter-spacing: normal;
+    word-spacing: normal;
+    text-size-adjust: none;
+    forced-color-adjust: none;
+    transform-origin: 0 0;
+    caret-color: CanvasText;
+  }
+  .mc-pdf-text :is(span, br) {
+    position: absolute;
+    color: transparent;
+    white-space: pre;
+    cursor: text;
+    transform-origin: 0% 0%;
+    user-select: text;
+  }
+  .mc-pdf-text > :not(.markedContent),
+  .mc-pdf-text .markedContent span:not(.markedContent) {
+    --font-height: 0;
+    --scale-x: 1;
+    --rotate: 0deg;
+    font-size: calc(var(--text-scale-factor) * var(--font-height));
+    transform: rotate(var(--rotate)) scaleX(var(--scale-x))
+      scale(var(--min-font-size-inv));
+  }
+  .mc-pdf-text .markedContent {
+    display: contents;
+  }
+  .mc-pdf-text ::selection {
+    background: color-mix(in srgb, AccentColor, transparent 50%);
+    color: transparent;
+  }
+  .mc-pdf-text br::selection {
+    background: transparent;
+  }
+  .mc-pdf-text[data-main-rotation='90'] {
+    transform: rotate(90deg) translateY(-100%);
+  }
+  .mc-pdf-text[data-main-rotation='180'] {
+    transform: rotate(180deg) translate(-100%, -100%);
+  }
+  .mc-pdf-text[data-main-rotation='270'] {
+    transform: rotate(270deg) translateX(-100%);
+  }
 }

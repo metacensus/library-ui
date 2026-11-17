@@ -9,6 +9,7 @@ import type { PdfError, PdfSource } from './index.js'
 /** One hold on a shared document. `document` rejects with a `PdfError`. */
 type Lease = {
   document: Promise<PDFDocumentProxy>
+  sha256: Promise<string>
   release: () => void
 }
 
@@ -21,6 +22,7 @@ export function open(source: PdfSource): Lease {
   let released = false
   return {
     document: held.then((entry) => entry.document),
+    sha256: held.then((entry) => entry.key),
     release: () => {
       if (released) return
       released = true
@@ -207,7 +209,7 @@ const failure = (
   status?: number,
 ): PdfError => Object.assign(new Error(message), { kind, status })
 
-function typed(error: unknown): PdfError {
+export function typed(error: unknown): PdfError {
   if (error instanceof Error && 'kind' in error) return error as PdfError
   const { name, message } = Object(error) as Partial<Error>
   return failure(
