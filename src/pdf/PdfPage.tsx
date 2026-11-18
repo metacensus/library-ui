@@ -1,4 +1,4 @@
-import type { PageViewport, PDFPageProxy } from 'pdfjs-dist'
+import type { PageViewport, PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Button } from '../tools/Button.js'
 import { cn } from '../tools/cn.js'
@@ -35,7 +35,12 @@ type Props = {
   className?: string
 }
 
-type Loaded = { page: PDFPageProxy; sha256: string; printed?: string }
+type Loaded = {
+  document: PDFDocumentProxy
+  page: PDFPageProxy
+  sha256: string
+  printed?: string
+}
 
 /** One page of a PDF, cropped to a passage or whole, with marks on it. */
 export function PdfPage({
@@ -57,6 +62,7 @@ export function PdfPage({
   const [attempt, setAttempt] = useState(0)
   const [loaded, setLoaded] = useState<Loaded>()
   const [error, setError] = useState<PdfError>()
+  const [resolutions, setResolutions] = useState<PdfResolution[]>()
   const [expanded, setExpanded] = useState(false)
   const toggled = useRef(false)
 
@@ -80,13 +86,19 @@ export function PdfPage({
           document.getPageLabels(),
         ])
         if (live)
-          setLoaded({ page: shown, sha256, printed: labels?.[page - 1] })
+          setLoaded({
+            document,
+            page: shown,
+            sha256,
+            printed: labels?.[page - 1],
+          })
       })
       .catch((error) => live && fail(error))
     return () => {
       live = false
       lease.release()
       setLoaded(undefined)
+      setResolutions(undefined)
     }
   }, [file, source.sha256, page, attempt])
 
@@ -96,18 +108,28 @@ export function PdfPage({
     onError?.(failure)
   }
 
-  const resolutions = useMemo(
-    () => loaded && resolve(marks, loaded.sha256),
-    [marks, loaded],
-  )
+  const anchors = JSON.stringify(marks.map(({ id, anchor }) => [id, anchor]))
+  useEffect(() => {
+    if (!loaded) return
+    let live = true
+    resolve(marks, loaded.document, loaded.sha256)
+      .then((resolutions) => live && setResolutions(resolutions))
+      .catch((error) => live && fail(error))
+    return () => {
+      live = false
+    }
+  }, [loaded, anchors])
   useEffect(() => {
     if (resolutions) onResolve?.(resolutions)
   }, [JSON.stringify(resolutions)])
 
-  const drawn = useMemo(
-    () => marks.filter((_, i) => resolutions?.[i]?.status === 'exact'),
-    [marks, resolutions],
-  )
+  const drawn = useMemo(() => {
+    const placed = new Map(resolutions?.map((r) => [r.id, r]))
+    return marks.flatMap((mark) => {
+      const { status, anchor = mark.anchor } = placed.get(mark.id) ?? {}
+      return status && status !== 'orphan' ? [{ ...mark, anchor }] : []
+    })
+  }, [marks, resolutions])
   const shown = crop && !expanded ? quadsOn(crop, page) : []
   const cropped = shown.length > 0
   const view = useMemo(
