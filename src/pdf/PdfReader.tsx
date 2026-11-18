@@ -10,11 +10,17 @@ import {
 import { cn } from '../tools/cn.js'
 import { open } from './document.js'
 import type { PdfMark, PdfTarget } from './index.js'
-import { toView } from './marks.js'
+import {
+  firstPage,
+  ReaderRoving,
+  readingOrder,
+  step,
+  toView,
+  type Roving,
+} from './marks.js'
 import type { PdfPage } from './PdfPage.js'
 import { Failed, PageView, pageName, useAttempt, useDrawn } from './page.js'
 import { watch } from './queue.js'
-import { quadsOf } from './anchor.js'
 import { quadsOn } from './resolve.js'
 import { pageAt, placeOf, restore, type Place } from './scroll.js'
 import { Toolbar, within } from './toolbar.js'
@@ -172,6 +178,7 @@ export function PdfReader({
     fetch(n)
     wanted.current = { page: n, mark }
     setGoal(wanted.current)
+    return wanted.current
   }
 
   // A mark's page is known once the marks resolve.
@@ -183,6 +190,16 @@ export function PdfReader({
   useEffect(() => {
     if (loaded && to) go(to, mark)
   }, [loaded, mark, to, jump])
+
+  // Ahead of the effect below, which marks its goal reached.
+  const roving = useRoving(
+    drawn,
+    fetched,
+    current,
+    box,
+    go,
+    (goal) => goal === wanted.current && goal !== reached.current,
+  )
 
   // Before paint, after every change of size: to a goal, once its mark's page
   // is fetched, else back to the reader's place.
@@ -320,23 +337,25 @@ export function PdfReader({
                 className="mc-pdf-pages"
                 style={{ padding: gap, gap }}
               >
-                {Array.from({ length: pages }, (_, i) => (
-                  <Slot
-                    key={i}
-                    page={i + 1}
-                    fetched={fetched[i + 1]}
-                    base={base}
-                    scale={scale}
-                    fetch={fetch}
-                    root={box}
-                    name={pageName(i + 1, loaded!.labels?.[i])}
-                    marks={drawn ?? []}
-                    current={current}
-                    onMarkActivate={onMarkActivate}
-                    onPageClick={onPageClick}
-                    onError={failOpen}
-                  />
-                ))}
+                <ReaderRoving.Provider value={roving}>
+                  {Array.from({ length: pages }, (_, i) => (
+                    <Slot
+                      key={i}
+                      page={i + 1}
+                      fetched={fetched[i + 1]}
+                      base={base}
+                      scale={scale}
+                      fetch={fetch}
+                      root={box}
+                      name={pageName(i + 1, loaded!.labels?.[i])}
+                      marks={drawn ?? []}
+                      current={current}
+                      onMarkActivate={onMarkActivate}
+                      onPageClick={onPageClick}
+                      onError={failOpen}
+                    />
+                  ))}
+                </ReaderRoving.Provider>
               </div>
             )}
           </div>
@@ -349,9 +368,63 @@ export function PdfReader({
   )
 }
 
-const firstPage = (mark?: PdfMark) => {
-  const pages = mark && quadsOf(mark.anchor).map(({ page }) => page)
-  return pages?.length ? Math.min(...pages) : undefined
+/** A move onto a page not yet fetched, from the mark focused at the time. */
+type Seek = { goal: Goal; last: boolean; from: Element | null }
+
+function useRoving(
+  marks: PdfMark[] | undefined,
+  fetched: Record<number, PDFPageProxy>,
+  current: string | undefined,
+  box: Element | null,
+  go: (page: number, mark?: string) => Goal | undefined,
+  waiting: (goal: Goal) => boolean,
+): Roving {
+  const [focused, setFocused] = useState<string>()
+  const [seek, setSeek] = useState<Seek>()
+  const order = useMemo(
+    () => readingOrder(marks ?? [], fetched),
+    [marks, fetched],
+  )
+  const stop = [focused, current]
+    .map((id) => order.find((mark) => mark.id === id))
+    .concat(order)
+    .find((mark) => mark && fetched[mark.page])
+  const markOn = (page: number, id: string) => {
+    const slot = box!.querySelectorAll('.mc-pdf-slot')[page - 1]!
+    return slot.querySelector<SVGGElement>(`[data-mark="${CSS.escape(id)}"]`)!
+  }
+
+  useLayoutEffect(() => {
+    if (!seek || !fetched[seek.goal.page]) return
+    setSeek(undefined)
+    const here = order.filter(({ page }) => page === seek.goal.page)
+    const to = seek.last ? here.at(-1) : here[0]
+    if (!to || !waiting(seek.goal) || document.activeElement !== seek.from)
+      return
+    if (to.id !== seek.goal.mark) go(to.page, to.id)
+    markOn(to.page, to.id).focus({ preventScroll: true })
+  }, [seek, order])
+
+  return {
+    isStop: (id, page) => id === stop?.id && page === stop.page,
+    focused: setFocused,
+    move: (from, key) => {
+      const to = step(
+        key,
+        order.findIndex(({ id }) => id === from),
+        order.length,
+      )
+      if (to === undefined) return false
+      const { id, page } = order[to]!
+      if (fetched[page]) markOn(page, id).focus()
+      else {
+        const goal = go(page, id)
+        const last = order[to - 1]?.page === page
+        if (goal) setSeek({ goal, last, from: document.activeElement })
+      }
+      return true
+    },
+  }
 }
 
 /** Where the view goes for `goal`: a mark's centre to the view's, once its
