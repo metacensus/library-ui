@@ -668,7 +668,9 @@ test('a source changed mid-render shows the new page, with no Notice and no onEr
   const [from, to] = ['scan.pdf', 'rotate.pdf'].map((name) =>
     all.find(({ url }) => url.endsWith(name))!,
   )
-  // `to` replaces `from` as its first render starts.
+  // `to` replaces `from` as its first render starts. That render is then
+  // cancelled as `from`'s closing document cancels it, a task before its
+  // abort, as a late commit orders them.
   await page.evaluate(
     async ({ from, to }) => {
       const { pdf, h, mount, documents } = window.harness
@@ -697,6 +699,12 @@ test('a source changed mid-render shows the new page, with no Notice and no onEr
       proto.render = function (...args: unknown[]) {
         proto.render = render
         const task = render.apply(this, args)
+        const abort = AbortController.prototype.abort
+        AbortController.prototype.abort = function () {
+          AbortController.prototype.abort = abort
+          task.cancel()
+          setTimeout(() => abort.call(this))
+        }
         show(to)
         return task
       }
