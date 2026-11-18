@@ -8,6 +8,7 @@ import process from 'node:process'
 import { build } from 'esbuild'
 
 const types = {
+  '.css': 'text/css',
   '.html': 'text/html',
   '.js': 'text/javascript',
   '.mjs': 'text/javascript',

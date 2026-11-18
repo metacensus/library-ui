@@ -114,6 +114,29 @@ test('the tools render on the server', () => {
     assert.ok(html.includes(c), c)
 })
 
+test('PdfPage renders a busy frame on the server, whole or cropped', async () => {
+  const { PdfPage } = await import('../dist/pdf/index.js')
+  const source = { url: '/paper.pdf', sha256: '0'.repeat(64) }
+  const whole = renderToString(h(PdfPage, { source, page: 3 }))
+  assert.match(whole, /aria-busy="true"/)
+  assert.match(whole, /role="region" aria-label="Page 3"/)
+  const crop = {
+    source: { sha256: '0'.repeat(64) },
+    selector: [
+      {
+        type: 'PdfQuadSelector',
+        quads: [{ page: 3, points: [0, 0, 1, 0, 1, 1, 0, 1] }],
+      },
+    ],
+  }
+  const cropped = renderToString(
+    h(PdfPage, { source, page: 3, crop, label: 'the passage' }),
+  )
+  assert.match(cropped, /aria-busy="true"/)
+  assert.match(cropped, /role="img" aria-label="the passage"/)
+  assert.match(cropped, /aria-expanded="false"/)
+})
+
 test('a Notice takes a tone: info adds its class and tone stays off the DOM', () => {
   const plain = renderToString(h(ui.Notice, null, 'Body'))
   assert.ok(!plain.includes('mc-notice-info'))
