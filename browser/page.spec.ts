@@ -660,3 +660,66 @@ test('a failed load shows a Notice whose Retry loads it, and tells onError once'
   ).toBeVisible()
   await expect(retry).toHaveCount(0)
 })
+
+test('a source changed mid-render shows the new page, with no Notice and no onError', async ({
+  page,
+}) => {
+  const all = await targets()
+  const [from, to] = ['scan.pdf', 'rotate.pdf'].map((name) =>
+    all.find(({ url }) => url.endsWith(name))!,
+  )
+  // `to` replaces `from` as its first render starts. That render is then
+  // cancelled as `from`'s closing document cancels it, a task before its
+  // abort, as a late commit orders them.
+  await page.evaluate(
+    async ({ from, to }) => {
+      const { pdf, h, mount, documents } = window.harness
+      pdf.configurePdf({ assets: '/pdf-assets/' })
+      const calls: unknown[][] = (window.calls = [])
+      const show = ({ url, sha256, page }: typeof from) =>
+        mount(
+          h(
+            'main',
+            null,
+            h(pdf.PdfPage, {
+              key: 'swapped',
+              source: { url, sha256 },
+              page,
+              onError: ({ kind, status }) =>
+                calls.push(['error', kind, status]),
+            }),
+          ),
+        )
+      const lease = documents.open(to)
+      const proto = Object.getPrototypeOf(
+        await (await lease.document).getPage(1),
+      )
+      lease.release()
+      const render = proto.render
+      proto.render = function (...args: unknown[]) {
+        proto.render = render
+        const task = render.apply(this, args)
+        const abort = AbortController.prototype.abort
+        AbortController.prototype.abort = function () {
+          AbortController.prototype.abort = abort
+          task.cancel()
+          setTimeout(() => abort.call(this))
+        }
+        show(to)
+        return task
+      }
+      show(from)
+    },
+    { from: from!, to: to! },
+  )
+  await expect
+    .poll(() =>
+      page
+        .locator('.mc-pdf-view > canvas')
+        .evaluate((c: HTMLCanvasElement) => c.width),
+    )
+    .toBeGreaterThan(0)
+  await page.waitForTimeout(500)
+  await expect(page.getByRole('button', { name: 'Retry' })).toHaveCount(0)
+  expect(await page.evaluate(() => window.calls)).toEqual([])
+})
