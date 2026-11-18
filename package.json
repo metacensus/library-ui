@@ -40,7 +40,8 @@
     "src/css",
     "src/pdf/anchor.schema.json",
     "LICENSE",
-    "TRADEMARKS.md"
+    "TRADEMARKS.md",
+    "LICENSES"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json && node scripts/pdf-assets.mjs",
