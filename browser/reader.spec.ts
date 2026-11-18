@@ -454,9 +454,9 @@ for (const zoom of [50, 100, 400]) {
           const id = marks[i]!.id
           await show(page, { ...file, target: { mark: id } })
           const shape = `[data-mark="${id}"] .mc-pdf-shape`
-          await page.locator(shape).waitFor()
-          const { width, mark } = await page.evaluate((shape) => {
-            const drawn = document.querySelector(shape)!
+          const measured = await page.waitForFunction((shape) => {
+            const drawn = document.querySelector(shape)
+            if (!drawn) return
             const view = drawn.closest('.mc-pdf-view')!.getBoundingClientRect()
             const box = drawn.getBoundingClientRect()
             return {
@@ -469,6 +469,7 @@ for (const zoom of [50, 100, 400]) {
               },
             }
           }, shape)
+          const { width, mark } = (await measured.jsonValue())!
           const where = `${url} page ${t.page} "${t.text}" at ${zoom}%`
           expect
             .soft(off(mark, shown(t.screen, [0, 0], width / t.width)), where)
