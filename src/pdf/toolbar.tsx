@@ -20,11 +20,10 @@ export function Toolbar({
   onPage: (page: number) => void
   onZoom: (zoom: number) => void
 }) {
-  // What the reader types, shown until they enter or leave it.
   const [typed, setTyped] = useState<string>()
   const go = () => {
     const asked = Math.round(Number(typed))
-    if (asked) onPage(Math.min(pages, Math.max(1, asked)))
+    if (asked) onPage(asked)
     setTyped(undefined)
   }
   const button = (label: string, text: string, onClick: () => void) => (
@@ -34,8 +33,8 @@ export function Toolbar({
   )
   return (
     <div className="mc-pdf-toolbar">
-      {button('Previous page', '‹', () => onPage(Math.max(1, page - 1)))}
-      {button('Next page', '›', () => onPage(Math.min(pages, page + 1)))}
+      {button('Previous page', '‹', () => onPage(page - 1))}
+      {button('Next page', '›', () => onPage(page + 1))}
       <form
         onSubmit={(event) => {
           event.preventDefault()

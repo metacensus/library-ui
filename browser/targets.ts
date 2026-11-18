@@ -5,14 +5,8 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { PDFDocument, PDFNumber, PDFName } from 'pdf-lib'
 
-export type Box = { left: number; top: number; right: number; bottom: number }
+type Box = { left: number; top: number; right: number; bottom: number }
 type Target = { page: number; points: number[]; text: string; screen: Box }
-
-declare global {
-  interface Window {
-    calls: unknown[][]
-  }
-}
 
 export const corpus = join(import.meta.dirname, 'corpus')
 export const sha256 = (bytes: Uint8Array) =>

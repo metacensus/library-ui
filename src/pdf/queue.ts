@@ -1,5 +1,5 @@
 // One render queue per window, and one pair of observers per scroll root,
-// shared by every page. A page with no root scrolls with the window.
+// shared by every page.
 
 type Job = { element: Element; root?: Element; run: () => Promise<void> }
 

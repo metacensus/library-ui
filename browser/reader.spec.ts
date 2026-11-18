@@ -21,7 +21,8 @@ const thousand = {
 }
 
 /** Shows a `PdfReader` in a frame `width` by `height` px, its callbacks logged
- *  to `window.calls`. Called again on the same URL, it updates the reader. */
+ *  to `window.calls`, and waits for its pages or its Notice. Called again on
+ *  the same URL, it updates the reader. */
 async function show(page: Page, props: Shown, width = 800, height = 600) {
   await page.evaluate(
     ({ props: { url, sha256, bytes, ...props }, width, height }) => {
@@ -56,7 +57,7 @@ async function show(page: Page, props: Shown, width = 800, height = 600) {
     },
     { props, width, height },
   )
-  await page.locator('.mc-pdf-slot').first().waitFor()
+  await page.locator('.mc-pdf-slot, [role="note"]').first().waitFor()
 }
 
 /** The page at the top of the view, and how far down it the top is. */
@@ -221,14 +222,7 @@ test('a placeholder corrected above the page in view does not move it', async ({
 test('a target scrolls to its mark or page, again on jump, and never on resize or zoom', async ({
   page,
 }) => {
-  const all = await targets()
-  const marks = all
-    .filter(({ url }) => url === thousand.url)
-    .map((t) => ({
-      id: t.text,
-      label: `page ${t.text}`,
-      anchor: anchor(t.sha256, t.page, t.points),
-    }))
+  const marks = await thousandMarks()
   await show(page, { ...thousand, marks, target: { mark: '500' } })
   await expect
     .poll(() => fromMiddle(page, '[data-mark="500"] .mc-pdf-shape'))
@@ -434,6 +428,132 @@ test('at 360 px wide and 400% only the reader scrolls sideways', async ({
   expect(sizes.view).toBeGreaterThan(0)
 })
 
+const thousandMarks = async () =>
+  (await targets())
+    .filter(({ url }) => url === thousand.url)
+    .map((t) => ({
+      id: t.text,
+      label: `page ${t.text}`,
+      anchor: anchor(t.sha256, t.page, t.points),
+    }))
+
+/** Holds back page `n` of the shared document by `ms`. */
+const delayPage = (page: Page, n: number, ms: number) =>
+  page.evaluate(
+    async ({ source, n, ms }) => {
+      window.harness.pdf.configurePdf({ assets: '/pdf-assets/' })
+      const shared = await window.harness.documents.open(source).document
+      const proto = Object.getPrototypeOf(shared)
+      const getPage = proto.getPage
+      proto.getPage = function (asked: number) {
+        const got = getPage.call(this, asked)
+        return asked === n
+          ? new Promise((r) => setTimeout(() => r(got), ms))
+          : got
+      }
+    },
+    { source: thousand, n, ms },
+  )
+
+test('a mark target scrolls once its marks arrive after the document', async ({
+  page,
+}) => {
+  await show(page, { ...thousand, target: { mark: '500' } })
+  await expect
+    .poll(() =>
+      page.evaluate(() => document.querySelector('canvas')?.width ?? 0),
+    )
+    .toBeGreaterThan(0)
+  await show(page, {
+    ...thousand,
+    marks: await thousandMarks(),
+    target: { mark: '500' },
+  })
+  await expect
+    .poll(() => fromMiddle(page, '[data-mark="500"] .mc-pdf-shape'))
+    .toBeLessThanOrEqual(1)
+})
+
+test('a scroll drops a mark jump still waiting for its page', async ({
+  page,
+}) => {
+  await delayPage(page, 500, 1500)
+  await show(page, {
+    ...thousand,
+    marks: await thousandMarks(),
+    target: { mark: '500' },
+  })
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.calls.some(([kind]) => kind === 'resolve')),
+    )
+    .toBe(true)
+  await scrollTo(page, 20, 0.5)
+  await page.waitForTimeout(2000)
+  expect((await top(page)).page).toBe(20)
+})
+
+test('pages more than 3 screens away release their canvases', async ({
+  page,
+}) => {
+  await show(page, thousand)
+  await scrollTo(page, 60, 0.5)
+  const canvases = () =>
+    page.evaluate(() => {
+      const view = document
+        .querySelector('.mc-pdf-scroll')!
+        .getBoundingClientRect()
+      return Array.from(
+        document.querySelectorAll<HTMLCanvasElement>('.mc-pdf-view > canvas'),
+      ).map((canvas) => {
+        const { top, bottom } = canvas.getBoundingClientRect()
+        const away = Math.max(top - view.bottom, view.top - bottom, 0)
+        return { width: canvas.width, screens: away / view.height }
+      })
+    })
+  await expect
+    .poll(async () =>
+      (await canvases())
+        .filter(({ screens }) => screens === 0)
+        .every(({ width }) => width > 0),
+    )
+    .toBe(true)
+  await expect
+    .poll(async () =>
+      (await canvases())
+        .filter(({ screens }) => screens > 3)
+        .map(({ width }) => width),
+    )
+    .toEqual(expect.arrayContaining([0]))
+  await expect
+    .poll(async () =>
+      (await canvases()).every(({ screens, width }) => screens <= 3 || !width),
+    )
+    .toBe(true)
+})
+
+test('a failed load shows a Notice whose Retry loads it, and tells onError once', async ({
+  page,
+}) => {
+  let fail = true
+  await page.route(`**${thousand.url}`, (route) =>
+    fail ? route.fulfill({ status: 404 }) : route.continue(),
+  )
+  await show(page, thousand)
+  const retry = page.getByRole('button', { name: 'Retry' })
+  await expect(retry).toBeVisible()
+  await page.waitForTimeout(500)
+  expect(
+    await page.evaluate(() =>
+      window.calls.filter(([kind]) => kind === 'error'),
+    ),
+  ).toEqual([['error', 'fetch', 404]])
+  fail = false
+  await retry.click()
+  await expect(page.getByRole('region', { name: 'Page 1' })).toBeVisible()
+  await expect(retry).toHaveCount(0)
+})
+
 // The alignment and access checks of page.spec.ts, inside the reader.
 for (const zoom of [50, 100, 400]) {
   test.describe(`at ${zoom}%`, () => {
@@ -555,6 +675,55 @@ for (const zoom of [50, 100, 400]) {
         ['activate', 'b'],
         ['activate', 'b'],
       ])
+    })
+
+    test('reading order holds across looks on one line', async ({ page }) => {
+      const t = (await targets()).find(({ text }) => text === 'turned0')!
+      const [x0, y0, x1, y1] = [
+        t.points[0]!,
+        t.points[1]!,
+        t.points[2]!,
+        t.points[5]!,
+      ]
+      const middle = (x0 + x1) / 2
+      // The right half sits a fraction of a point higher, as another run's quad can.
+      const half = (
+        id: string,
+        look: 'fill' | 'outline',
+        [l, r]: number[],
+        up: number,
+      ) => ({
+        id,
+        label: id,
+        look,
+        anchor: anchor(t.sha256, 1, [
+          l!,
+          y0 + up,
+          r!,
+          y0 + up,
+          r!,
+          y1 + up,
+          l!,
+          y1 + up,
+        ]),
+      })
+      const file = {
+        ...t,
+        marks: [
+          half('right', 'outline', [middle, x1], 0.3),
+          half('left', 'fill', [x0, middle], 0),
+        ],
+      }
+      await show(page, file)
+      await zoomTo(page, zoom)
+      await expect(page.locator('.mc-pdf-mark')).toHaveCount(2)
+      const focused = () =>
+        page.evaluate(() => (document.activeElement as SVGElement).dataset.mark)
+      await page.locator('.mc-pdf-scroll').focus()
+      await page.keyboard.press('Tab')
+      expect(await focused()).toBe('left')
+      await page.keyboard.press('ArrowRight')
+      expect(await focused()).toBe('right')
     })
 
     test('a click off the marks reports its point in user space', async ({

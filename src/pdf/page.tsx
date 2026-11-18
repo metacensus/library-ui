@@ -2,7 +2,8 @@ import type { PageViewport, PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist'
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { Button } from '../tools/Button.js'
 import { Notice } from '../tools/Notice.js'
-import type { PdfMark, PdfPoint, PdfResolution } from './index.js'
+import { typed } from './document.js'
+import type { PdfError, PdfMark, PdfPoint, PdfResolution } from './index.js'
 import { hit, Marks, place } from './marks.js'
 import { enqueue, watch } from './queue.js'
 import { resolve } from './resolve.js'
@@ -15,7 +16,6 @@ export type View = {
   height: number
 }
 
-/** A whole page's accessible name, with its printed label when that differs. */
 export const pageName = (page: number, printed?: string) =>
   printed && printed !== String(page)
     ? `Page ${page}, printed page ${printed}`
@@ -28,6 +28,22 @@ export const Failed = ({ onRetry }: { onRetry: () => void }) => (
     </Button>
   </Notice>
 )
+
+/** The error that ended the latest attempt to load, and the retry that starts the next. */
+export function useAttempt(onError?: (error: PdfError) => void) {
+  const [attempt, setAttempt] = useState(0)
+  const [error, setError] = useState<PdfError>()
+  const fail = (error: unknown) => {
+    const failure = typed(error)
+    setError(failure)
+    onError?.(failure)
+  }
+  const retry = () => {
+    setError(undefined)
+    setAttempt((n) => n + 1)
+  }
+  return { attempt, error, fail, retry }
+}
 
 /** The marks to draw on `loaded`, each told to `onResolve` and carrying its
  *  fresh anchor where reanchored; undefined until they resolve. */

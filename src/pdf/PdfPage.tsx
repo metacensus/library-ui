@@ -2,7 +2,7 @@ import type { PageViewport, PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Button } from '../tools/Button.js'
 import { cn } from '../tools/cn.js'
-import { open, typed } from './document.js'
+import { open } from './document.js'
 import type {
   PdfAnchor,
   PdfError,
@@ -12,7 +12,14 @@ import type {
   PdfSource,
 } from './index.js'
 import { toView } from './marks.js'
-import { Failed, PageView, pageName, useDrawn, type View } from './page.js'
+import {
+  Failed,
+  PageView,
+  pageName,
+  useAttempt,
+  useDrawn,
+  type View,
+} from './page.js'
 import { quadsOn } from './resolve.js'
 
 type Props = {
@@ -58,9 +65,8 @@ export function PdfPage({
   const host = useRef<HTMLDivElement>(null)
   const id = useId()
   const [width, setWidth] = useState(0)
-  const [attempt, setAttempt] = useState(0)
   const [loaded, setLoaded] = useState<Loaded>()
-  const [error, setError] = useState<PdfError>()
+  const { attempt, error, fail, retry } = useAttempt(onError)
   const [expanded, setExpanded] = useState(false)
   const toggled = useRef(false)
 
@@ -99,12 +105,6 @@ export function PdfPage({
     }
   }, [file, source.sha256, page, attempt])
 
-  const fail = (error: unknown) => {
-    const failure = typed(error)
-    setError(failure)
-    onError?.(failure)
-  }
-
   const drawn = useDrawn(marks, loaded, onResolve, fail)
   const shown = crop && !expanded ? quadsOn(crop, page) : []
   const cropped = shown.length > 0
@@ -128,12 +128,7 @@ export function PdfPage({
       aria-busy={!loaded && !error}
     >
       {error ? (
-        <Failed
-          onRetry={() => {
-            setError(undefined)
-            setAttempt((n) => n + 1)
-          }}
-        />
+        <Failed onRetry={retry} />
       ) : (
         <>
           <div id={id}>

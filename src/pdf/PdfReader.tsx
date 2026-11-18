@@ -1,6 +1,6 @@
 import type { PageViewport, PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist'
 import {
-  useCallback,
+  type ComponentProps,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -8,38 +8,26 @@ import {
   useState,
 } from 'react'
 import { cn } from '../tools/cn.js'
-import { open, typed } from './document.js'
-import type {
-  PdfError,
-  PdfMark,
-  PdfPoint,
-  PdfResolution,
-  PdfSource,
-  PdfTarget,
-} from './index.js'
+import { open } from './document.js'
+import type { PdfMark, PdfTarget } from './index.js'
 import { toView } from './marks.js'
-import { Failed, PageView, pageName, useDrawn } from './page.js'
+import type { PdfPage } from './PdfPage.js'
+import { Failed, PageView, pageName, useAttempt, useDrawn } from './page.js'
 import { watch } from './queue.js'
 import { quadsOf } from './anchor.js'
 import { quadsOn } from './resolve.js'
 import { pageAt, placeOf, restore, type Place } from './scroll.js'
 import { Toolbar, within } from './toolbar.js'
 
-type Props = {
-  source: PdfSource
-  marks?: PdfMark[]
-  /** A mark id, drawn heavier. */
-  current?: string
+type Props = Omit<
+  ComponentProps<typeof PdfPage>,
+  'page' | 'crop' | 'label' | 'className'
+> & {
   /** Scrolled to on load, when its page or mark changes, and when `jump` does. */
   target?: PdfTarget
   jump?: number
   /** The page under the middle of the view. */
   onPageChange?: (page: { index: number; label?: string }) => void
-  onResolve?: (resolutions: PdfResolution[]) => void
-  /** Makes marks buttons. */
-  onMarkActivate?: (id: string) => void
-  onPageClick?: (point: PdfPoint) => void
-  onError?: (error: PdfError) => void
   /** The frame, which sets the reader's height. */
   className?: string
 }
@@ -74,24 +62,19 @@ export function PdfReader({
   const [box, setBox] = useState<HTMLDivElement | null>(null)
   const sheet = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
-  const [attempt, setAttempt] = useState(0)
   const [loaded, setLoaded] = useState<Loaded>()
-  const [error, setError] = useState<PdfError>()
+  const { attempt, error, fail, retry } = useAttempt(onError)
   const [fetched, setFetched] = useState<Record<number, PDFPageProxy>>({})
   const [zoom, setZoom] = useState(1)
   const [shown, setShown] = useState(1)
   const [said, setSaid] = useState('')
   const [goal, setGoal] = useState<Goal>()
   const reached = useRef<Goal>()
+  const wanted = useRef<Goal>()
   const place = useRef<Place>()
   // Where the view stood when `place` was last set; any scroll away is a person's.
   const scrolledTo = useRef<{ top: number; left: number }>()
 
-  const fail = (error: unknown) => {
-    const failure = typed(error)
-    setError(failure)
-    onError?.(failure)
-  }
   const failOpen = (error: unknown) => loaded?.live() && fail(error)
 
   // Callers pass new objects each render, so effects key on their contents.
@@ -139,27 +122,31 @@ export function PdfReader({
   const drawn = useDrawn(marks, loaded, onResolve, fail)
 
   const now = useRef({ zoom, scale: 0 })
+  // A pinch or ctrl+wheel in progress: the pages wear a transform until the
+  // zoom it ends at is drawn, so no rect is read while it is set.
+  const gesture = useRef<{ ratio: number; at: number; done?: boolean }>()
+  // A new place supersedes a jump still waiting for its page.
   const capture = (at?: number) => {
     if (!box || !now.current.scale) return
     place.current = placeOf(box, now.current.scale, at)
     scrolledTo.current = { top: box.scrollTop, left: box.scrollLeft }
+    reached.current = wanted.current
   }
   // A scroll the reader did not make sets the place, even one whose event has
   // yet to fire, so it is read here, before this render changes any size.
   const follow = () => {
     const to = scrolledTo.current
+    if (!box || !to || gesture.current) return
     if (
-      box &&
-      to &&
-      Math.abs(box.scrollTop - to.top) <= 1 &&
-      Math.abs(box.scrollLeft - to.left) <= 1
+      Math.abs(box.scrollTop - to.top) > 1 ||
+      Math.abs(box.scrollLeft - to.left) > 1
     )
-      return
-    capture()
+      capture()
   }
   follow()
 
-  const base = useMemo(() => fetched[1]?.getViewport({ scale: 1 }), [fetched])
+  const first = fetched[1]
+  const base = useMemo(() => first?.getViewport({ scale: 1 }), [first])
   const scale = base && width ? (zoom * (width - 2 * gap)) / base.width : 0
   now.current = { zoom, scale }
 
@@ -183,28 +170,32 @@ export function PdfReader({
     if (!loaded || !fetch) return
     const n = Math.min(loaded.document.numPages, Math.max(1, page))
     fetch(n)
-    setGoal({ page: n, mark })
+    wanted.current = { page: n, mark }
+    setGoal(wanted.current)
   }
 
-  // A mark is found once the marks resolve.
-  const targeted =
-    target && ('page' in target ? `page ${target.page}` : drawn && target.mark)
+  // A mark's page is known once the marks resolve.
+  const mark = target && 'mark' in target ? target.mark : undefined
+  const to =
+    target && 'page' in target
+      ? target.page
+      : firstPage(drawn?.find(({ id }) => id === mark))
   useEffect(() => {
-    if (!target || !targeted || !loaded) return
-    if ('page' in target) return go(target.page)
-    const mark = drawn?.find(({ id }) => id === target.mark)
-    const pages = mark && quadsOf(mark.anchor).map(({ page }) => page)
-    if (pages?.length) go(Math.min(...pages), target.mark)
-  }, [loaded, targeted, jump])
+    if (loaded && to) go(to, mark)
+  }, [loaded, mark, to, jump])
 
   // Before paint, after every change of size: to a goal, once its mark's page
   // is fetched, else back to the reader's place.
   useLayoutEffect(() => {
-    if (!box || !scale) return
+    if (!box || !scale || (gesture.current && !gesture.current.done)) return
     const page = goal && fetched[goal.page]
     if (goal && goal !== reached.current && (page || !goal.mark)) {
       reached.current = goal
       place.current = aim(box, goal, scale, drawn ?? [], page)
+    }
+    if (gesture.current) {
+      sheet.current!.style.transform = ''
+      gesture.current = undefined
     }
     if (place.current) restore(box, place.current, scale)
     place.current ??= placeOf(box, scale)
@@ -213,7 +204,7 @@ export function PdfReader({
   }, [box, scale, fetched, goal])
 
   const scrolled = () => {
-    if (!box || !scale) return
+    if (!box || !scale || gesture.current) return
     follow()
     setShown(pageAt(box, box.clientHeight / 2))
   }
@@ -228,40 +219,47 @@ export function PdfReader({
     return () => clearTimeout(settled)
   }, [shown, loaded])
 
-  const zoomTo = useCallback(
-    (to: number, at?: number) => {
-      capture(at)
-      setZoom(within(to))
-    },
-    [box],
-  )
+  const zoomTo = (to: number) => {
+    capture()
+    setZoom(within(to))
+  }
 
   // Pinch and ctrl+wheel scale the pages by a transform, from the view's top,
   // then zoom once the gesture ends.
   useEffect(() => {
     if (!box) return
-    let ratio = 1
-    let at = 0
     let span = 0
     let idle: ReturnType<typeof setTimeout> | undefined
-    const preview = (by: number, from: number) => {
+    const preview = (by: number, at: number) => {
+      if (gesture.current?.done) return
+      if (!gesture.current) capture(at)
       const { zoom } = now.current
-      ratio = within(zoom * by) / zoom
-      at = from
+      const ratio = within(zoom * by) / zoom
+      gesture.current = { ratio, at }
       const pages = sheet.current!
       pages.style.transformOrigin = `${box.scrollLeft + at}px ${box.scrollTop}px`
       pages.style.transform = `scale(${ratio})`
     }
+    // The layout effect drawing the new zoom takes the transform off.
     const commit = () => {
-      sheet.current!.style.transform = ''
-      zoomTo(now.current.zoom * ratio, at)
-      ratio = 1
+      const { zoom } = now.current
+      const to = within(zoom * gesture.current!.ratio)
+      if (to === zoom) {
+        sheet.current!.style.transform = ''
+        gesture.current = undefined
+      } else {
+        gesture.current!.done = true
+        setZoom(to)
+      }
     }
     const left = (x: number) => x - box.getBoundingClientRect().left
     const wheel = (event: WheelEvent) => {
       if (!event.ctrlKey || !sheet.current) return
       event.preventDefault()
-      preview(ratio * Math.exp(-event.deltaY / 200), left(event.clientX))
+      preview(
+        (gesture.current?.ratio ?? 1) * Math.exp(-event.deltaY / 200),
+        left(event.clientX),
+      )
       clearTimeout(idle)
       idle = setTimeout(commit, 200)
     }
@@ -287,7 +285,7 @@ export function PdfReader({
       for (const type of touches)
         box.removeEventListener(type, touch as EventListener)
     }
-  }, [box, zoomTo])
+  }, [box])
 
   const pages = loaded?.document.numPages ?? 0
   return (
@@ -296,12 +294,7 @@ export function PdfReader({
       aria-busy={!loaded && !error}
     >
       {error ? (
-        <Failed
-          onRetry={() => {
-            setError(undefined)
-            setAttempt((n) => n + 1)
-          }}
-        />
+        <Failed onRetry={retry} />
       ) : (
         <>
           {loaded && (
@@ -316,6 +309,8 @@ export function PdfReader({
           <div
             ref={setBox}
             className="mc-pdf-scroll"
+            role="region"
+            aria-label="Document"
             tabIndex={0}
             onScroll={scrolled}
           >
@@ -354,6 +349,11 @@ export function PdfReader({
   )
 }
 
+const firstPage = (mark?: PdfMark) => {
+  const pages = mark && quadsOf(mark.anchor).map(({ page }) => page)
+  return pages?.length ? Math.min(...pages) : undefined
+}
+
 /** Where the view goes for `goal`: a mark's centre to the view's, once its
  *  page is fetched, else the page's top to the view's top. */
 function aim(
@@ -390,19 +390,13 @@ function Slot({
   fetch,
   root,
   ...shown
-}: {
+}: Omit<ComponentProps<typeof PageView>, 'view' | 'cropped' | 'root'> & {
   page: number
   fetched?: PDFPageProxy
   base: PageViewport
   scale: number
   fetch: (page: number) => void
   root: Element
-  name: string
-  marks: PdfMark[]
-  current?: string
-  onMarkActivate?: (id: string) => void
-  onPageClick?: (point: PdfPoint) => void
-  onError: (error: unknown) => void
 }) {
   const slot = useRef<HTMLDivElement>(null)
   useEffect(() => {

@@ -51,9 +51,19 @@ export function placeOf(
   }
 }
 
-/** Scrolls the box so `place` holds at `scale`. */
+// A scroll that moves nothing is skipped, since some touch browsers end a
+// fling at any scroll a page makes.
 export function restore(box: Element, place: Place, scale: number): void {
   const { top, left } = corner(box, place.page)
   const ratio = scale / place.scale
-  box.scrollTo(left + place.x * ratio - place.at, top + place.y * ratio)
+  const x = clamp(
+    left + place.x * ratio - place.at,
+    box.scrollWidth - box.clientWidth,
+  )
+  const y = clamp(top + place.y * ratio, box.scrollHeight - box.clientHeight)
+  if (Math.abs(x - box.scrollLeft) >= 0.5 || Math.abs(y - box.scrollTop) >= 0.5)
+    box.scrollTo(x, y)
 }
+
+const clamp = (n: number, most: number) =>
+  Math.min(Math.max(0, most), Math.max(0, n))
