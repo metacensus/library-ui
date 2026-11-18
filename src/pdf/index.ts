@@ -3,6 +3,7 @@ import type { PdfAnchor } from './anchor.js'
 export { quadFromRect, quadsFromFractions, type PdfAnchor } from './anchor.js'
 export { configurePdf } from './assets.js'
 export { PdfPage } from './PdfPage.js'
+export { PdfReader } from './PdfReader.js'
 
 export type PdfSource =
   | {

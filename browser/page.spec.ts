@@ -1,16 +1,11 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { createHash } from 'node:crypto'
-import { readFileSync, readdirSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { PDFDocument, PDFNumber, PDFName, rgb } from 'pdf-lib'
+import { PDFDocument, rgb } from 'pdf-lib'
 import type { PdfAnchor, PdfMark } from '../src/pdf/index.js'
+import { anchor, corpus, grow, off, sha256, shown, targets } from './targets.js'
 
-// The corpus is written when the harness server starts, after tests are listed,
-// so each test reads it as it runs.
-
-type Box = { left: number; top: number; right: number; bottom: number }
-type Target = { page: number; points: number[]; text: string; screen: Box }
 type Card = {
   url?: string
   bytes?: number[]
@@ -20,59 +15,6 @@ type Card = {
   label?: string
   marks?: PdfMark[]
 }
-
-declare global {
-  interface Window {
-    calls: unknown[][]
-  }
-}
-
-const corpus = join(import.meta.dirname, 'corpus')
-const sha256 = (bytes: Uint8Array) =>
-  createHash('sha256').update(bytes).digest('hex')
-
-/** Every corpus target, with its page's size and unit at scale 1 in CSS px. */
-async function targets() {
-  const files = readdirSync(corpus).filter((name) => name.endsWith('.pdf'))
-  return (
-    await Promise.all(
-      files.map(async (name) => {
-        const bytes = readFileSync(join(corpus, name))
-        const pages = (await PDFDocument.load(bytes)).getPages()
-        const json = readFileSync(join(corpus, name.replace(/pdf$/, 'json')))
-        return (JSON.parse(String(json)) as { targets: Target[] }).targets.map(
-          (target) => {
-            const page = pages[target.page - 1]!
-            const crop = page.getCropBox()
-            const unit =
-              (
-                page.node.get(PDFName.of('UserUnit')) as PDFNumber
-              )?.asNumber() ?? 1
-            const turned = page.getRotation().angle % 180 !== 0
-            return {
-              ...target,
-              url: `/corpus/${name}`,
-              sha256: sha256(bytes),
-              unit,
-              width: (turned ? crop.height : crop.width) * unit,
-              height: (turned ? crop.width : crop.height) * unit,
-            }
-          },
-        )
-      }),
-    )
-  ).flat()
-}
-
-const anchor = (sha256: string, page: number, ...quads: number[][]) => ({
-  source: { sha256 },
-  selector: [
-    {
-      type: 'PdfQuadSelector' as const,
-      quads: quads.map((points) => ({ page, points })),
-    },
-  ],
-})
 
 let mounts = 0
 
@@ -142,32 +84,6 @@ const measure = (page: Page) =>
         ),
       }
     }),
-  )
-
-const off = (a: Box, b: Box) =>
-  Math.max(
-    ...(['left', 'top', 'right', 'bottom'] as const).map((edge) =>
-      Math.abs(a[edge] - b[edge]),
-    ),
-  )
-
-const grow = ({ left, top, right, bottom }: Box, by: number): Box => ({
-  left: left - by,
-  top: top - by,
-  right: right + by,
-  bottom: bottom + by,
-})
-
-/** `box` from `origin`, at `scale`, padded 1 px as a fill is. */
-const shown = (box: Box, [x, y]: [number, number], scale: number) =>
-  grow(
-    {
-      left: (box.left - x) * scale,
-      top: (box.top - y) * scale,
-      right: (box.right - x) * scale,
-      bottom: (box.bottom - y) * scale,
-    },
-    1,
   )
 
 const margin = 30

@@ -2,8 +2,7 @@ import type { PageViewport, PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Button } from '../tools/Button.js'
 import { cn } from '../tools/cn.js'
-import { Notice } from '../tools/Notice.js'
-import { open, typed } from './document.js'
+import { open } from './document.js'
 import type {
   PdfAnchor,
   PdfError,
@@ -13,8 +12,15 @@ import type {
   PdfSource,
 } from './index.js'
 import { toView } from './marks.js'
-import { PageView, type View } from './page.js'
-import { quadsOn, resolve } from './resolve.js'
+import {
+  Failed,
+  PageView,
+  pageName,
+  useAttempt,
+  useDrawn,
+  type View,
+} from './page.js'
+import { quadsOn } from './resolve.js'
 
 type Props = {
   source: PdfSource
@@ -59,10 +65,8 @@ export function PdfPage({
   const host = useRef<HTMLDivElement>(null)
   const id = useId()
   const [width, setWidth] = useState(0)
-  const [attempt, setAttempt] = useState(0)
   const [loaded, setLoaded] = useState<Loaded>()
-  const [error, setError] = useState<PdfError>()
-  const [resolutions, setResolutions] = useState<PdfResolution[]>()
+  const { attempt, error, fail, retry } = useAttempt(onError)
   const [expanded, setExpanded] = useState(false)
   const toggled = useRef(false)
 
@@ -98,38 +102,10 @@ export function PdfPage({
       live = false
       lease.release()
       setLoaded(undefined)
-      setResolutions(undefined)
     }
   }, [file, source.sha256, page, attempt])
 
-  const fail = (error: unknown) => {
-    const failure = typed(error)
-    setError(failure)
-    onError?.(failure)
-  }
-
-  const anchors = JSON.stringify(marks.map(({ id, anchor }) => [id, anchor]))
-  useEffect(() => {
-    if (!loaded) return
-    let live = true
-    resolve(marks, loaded.document, loaded.sha256)
-      .then((resolutions) => live && setResolutions(resolutions))
-      .catch((error) => live && fail(error))
-    return () => {
-      live = false
-    }
-  }, [loaded, anchors])
-  useEffect(() => {
-    if (resolutions) onResolve?.(resolutions)
-  }, [JSON.stringify(resolutions)])
-
-  const drawn = useMemo(() => {
-    const placed = new Map(resolutions?.map((r) => [r.id, r]))
-    return marks.flatMap((mark) => {
-      const { status, anchor = mark.anchor } = placed.get(mark.id) ?? {}
-      return status && status !== 'orphan' ? [{ ...mark, anchor }] : []
-    })
-  }, [marks, resolutions])
+  const drawn = useDrawn(marks, loaded, onResolve, fail)
   const shown = crop && !expanded ? quadsOn(crop, page) : []
   const cropped = shown.length > 0
   const view = useMemo(
@@ -145,10 +121,6 @@ export function PdfPage({
       ?.scrollIntoView({ block: 'nearest' })
   }, [view])
 
-  const printed =
-    loaded?.printed && loaded.printed !== String(page)
-      ? `, printed page ${loaded.printed}`
-      : ''
   return (
     <div
       ref={host}
@@ -156,17 +128,7 @@ export function PdfPage({
       aria-busy={!loaded && !error}
     >
       {error ? (
-        <Notice title="This PDF could not be shown.">
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setError(undefined)
-              setAttempt((n) => n + 1)
-            }}
-          >
-            Retry
-          </Button>
-        </Notice>
+        <Failed onRetry={retry} />
       ) : (
         <>
           <div id={id}>
@@ -174,9 +136,11 @@ export function PdfPage({
               view={view}
               cropped={cropped}
               name={
-                cropped ? (label ?? `Page ${page}`) : `Page ${page}${printed}`
+                cropped
+                  ? (label ?? `Page ${page}`)
+                  : pageName(page, loaded?.printed)
               }
-              marks={drawn}
+              marks={drawn ?? []}
               current={current}
               onMarkActivate={onMarkActivate}
               onPageClick={onPageClick}

@@ -27,6 +27,8 @@ const harness = {
 declare global {
   interface Window {
     harness: typeof harness
+    /** Callbacks a spec logs. */
+    calls: unknown[][]
   }
 }
 window.harness = harness

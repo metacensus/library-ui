@@ -86,6 +86,56 @@
     transform: translate(-100%, -100%);
   }
 
+  /* The reader: a toolbar over a box that scrolls both ways, so the page
+   * around it never does. */
+  .mc-pdf-reader {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .mc-pdf-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--mc-hairline);
+  }
+  .mc-pdf-toolbar .mc-control {
+    width: 4em;
+  }
+  .mc-pdf-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    overflow-anchor: none;
+    scrollbar-gutter: stable;
+    touch-action: pan-x pan-y;
+    background: var(--mc-surface);
+  }
+  .mc-pdf-pages {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+    width: max-content;
+    min-width: 100%;
+  }
+  .mc-pdf-slot {
+    flex: none;
+    background: var(--mc-card);
+  }
+  .mc-pdf-said {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
   @media (forced-colors: active) {
     .mc-pdf-shape,
     .mc-pdf-fill .mc-pdf-shape {

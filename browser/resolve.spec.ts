@@ -1,13 +1,10 @@
 import { expect, test, type Page } from '@playwright/test'
 import Ajv2020 from 'ajv/dist/2020.js'
-import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { quadsOf, type Quad, type Quote } from '../src/pdf/anchor.js'
 import type { PdfAnchor, PdfMark, PdfResolution } from '../src/pdf/index.js'
-
-// The corpus is written when the harness server starts, after tests are listed,
-// so each test reads it as it runs.
+import { corpus, sha256 } from './targets.js'
 
 type Target = Quad & { text: string }
 
@@ -18,7 +15,6 @@ declare global {
   }
 }
 
-const corpus = join(import.meta.dirname, 'corpus')
 const quarterEm = 24 / 4
 
 function file(name: string) {
@@ -26,7 +22,7 @@ function file(name: string) {
   const json = readFileSync(join(corpus, `${name}.json`), 'utf8')
   return {
     url: `/corpus/${name}.pdf`,
-    sha256: createHash('sha256').update(bytes).digest('hex'),
+    sha256: sha256(bytes),
     targets: (JSON.parse(json) as { targets: Target[] }).targets,
   }
 }

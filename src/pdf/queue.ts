@@ -1,6 +1,7 @@
-// One render queue and one pair of observers per window, shared by every page.
+// One render queue per window, and one pair of observers per scroll root,
+// shared by every page.
 
-type Job = { element: Element; run: () => Promise<void> }
+type Job = { element: Element; root?: Element; run: () => Promise<void> }
 
 const pending = new Set<Job>()
 let running = 0
@@ -9,9 +10,10 @@ let running = 0
 export function enqueue(
   element: Element,
   draw: (signal: AbortSignal) => Promise<void>,
+  root?: Element,
 ): () => void {
   const aborted = new AbortController()
-  const job = { element, run: () => draw(aborted.signal) }
+  const job = { element, root, run: () => draw(aborted.signal) }
   pending.add(job)
   pump()
   return () => {
@@ -23,7 +25,7 @@ export function enqueue(
 function pump() {
   while (running < 2 && pending.size) {
     const job = [...pending].reduce((a, b) =>
-      distance(b.element) < distance(a.element) ? b : a,
+      distance(b) < distance(a) ? b : a,
     )
     pending.delete(job)
     running++
@@ -34,38 +36,47 @@ function pump() {
   }
 }
 
-function distance(element: Element) {
+function distance({ element, root }: Job) {
   const { top, bottom } = element.getBoundingClientRect()
-  return Math.max(0, top - innerHeight, -bottom)
+  const view = root?.getBoundingClientRect() ?? { top: 0, bottom: innerHeight }
+  return Math.max(0, top - view.bottom, view.top - bottom)
 }
 
 const watched = new Map<Element, (near: boolean) => void>()
-let observers: IntersectionObserver[] | undefined
+const observers = new WeakMap<Element | Document, IntersectionObserver[]>()
+let listening = false
 
-/** Calls `set(true)` within one screen of the viewport, `set(false)` beyond three. */
+/** Calls `set(true)` within one screen of `root`, `set(false)` beyond three. */
 export function watch(
   element: Element,
   set: (near: boolean) => void,
+  root?: Element,
 ): () => void {
-  if (!observers) {
-    observers = [observer('100%', true), observer('300%', false)]
+  if (!listening) {
+    listening = true
     // Released pages render again to print.
     addEventListener('beforeprint', () => watched.forEach((set) => set(true)))
   }
+  const key = root ?? document
+  const pair = observers.get(key) ?? [
+    observer('100%', true, root),
+    observer('300%', false, root),
+  ]
+  observers.set(key, pair)
   watched.set(element, set)
-  observers.forEach((o) => o.observe(element))
+  pair.forEach((o) => o.observe(element))
   return () => {
     watched.delete(element)
-    observers!.forEach((o) => o.unobserve(element))
+    pair.forEach((o) => o.unobserve(element))
   }
 }
 
-function observer(margin: string, near: boolean) {
+function observer(margin: string, near: boolean, root?: Element) {
   return new IntersectionObserver(
     (entries) => {
       for (const { target, isIntersecting } of entries)
         if (isIntersecting === near) watched.get(target)?.(near)
     },
-    { rootMargin: `${margin} 0px` },
+    { root, rootMargin: `${margin} 0px` },
   )
 }

@@ -1,8 +1,12 @@
-import type { PageViewport, PDFPageProxy } from 'pdfjs-dist'
+import type { PageViewport, PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist'
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
-import type { PdfMark, PdfPoint } from './index.js'
+import { Button } from '../tools/Button.js'
+import { Notice } from '../tools/Notice.js'
+import { typed } from './document.js'
+import type { PdfError, PdfMark, PdfPoint, PdfResolution } from './index.js'
 import { hit, Marks, place } from './marks.js'
 import { enqueue, watch } from './queue.js'
+import { resolve } from './resolve.js'
 
 /** What a page shows: `viewport` drawn into `width` by `height` CSS px. */
 export type View = {
@@ -10,6 +14,70 @@ export type View = {
   viewport: PageViewport
   width: number
   height: number
+}
+
+export const pageName = (page: number, printed?: string) =>
+  printed && printed !== String(page)
+    ? `Page ${page}, printed page ${printed}`
+    : `Page ${page}`
+
+export const Failed = ({ onRetry }: { onRetry: () => void }) => (
+  <Notice title="This PDF could not be shown.">
+    <Button variant="secondary" onClick={onRetry}>
+      Retry
+    </Button>
+  </Notice>
+)
+
+/** The error that ended the latest attempt to load, and the retry that starts the next. */
+export function useAttempt(onError?: (error: PdfError) => void) {
+  const [attempt, setAttempt] = useState(0)
+  const [error, setError] = useState<PdfError>()
+  const fail = (error: unknown) => {
+    const failure = typed(error)
+    setError(failure)
+    onError?.(failure)
+  }
+  const retry = () => {
+    setError(undefined)
+    setAttempt((n) => n + 1)
+  }
+  return { attempt, error, fail, retry }
+}
+
+/** The marks to draw on `loaded`, each told to `onResolve` and carrying its
+ *  fresh anchor where reanchored; undefined until they resolve. */
+export function useDrawn(
+  marks: PdfMark[],
+  loaded: { document: PDFDocumentProxy; sha256: string } | undefined,
+  onResolve: ((resolutions: PdfResolution[]) => void) | undefined,
+  onError: (error: unknown) => void,
+): PdfMark[] | undefined {
+  const [resolved, setResolved] = useState<[object, PdfResolution[]]>()
+  const resolutions =
+    loaded && resolved?.[0] === loaded ? resolved[1] : undefined
+  const anchors = JSON.stringify(marks.map(({ id, anchor }) => [id, anchor]))
+  useEffect(() => {
+    if (!loaded) return
+    let live = true
+    resolve(marks, loaded.document, loaded.sha256)
+      .then((resolutions) => live && setResolved([loaded, resolutions]))
+      .catch((error) => live && onError(error))
+    return () => {
+      live = false
+    }
+  }, [loaded, anchors])
+  useEffect(() => {
+    if (resolutions) onResolve?.(resolutions)
+  }, [JSON.stringify(resolutions)])
+  return useMemo(() => {
+    if (!resolutions) return
+    const placed = new Map(resolutions.map((r) => [r.id, r]))
+    return marks.flatMap((mark) => {
+      const { status, anchor = mark.anchor } = placed.get(mark.id) ?? {}
+      return status && status !== 'orphan' ? [{ ...mark, anchor }] : []
+    })
+  }, [marks, resolutions])
 }
 
 /** The iOS limit on one canvas; past it a page renders softer. */
@@ -24,6 +92,7 @@ export function PageView({
   onMarkActivate,
   onPageClick,
   onError,
+  root,
 }: {
   view?: View
   cropped: boolean
@@ -33,6 +102,8 @@ export function PageView({
   onMarkActivate?: (id: string) => void
   onPageClick?: (point: PdfPoint) => void
   onError: (error: unknown) => void
+  /** The box the page scrolls in; absent, the window. */
+  root?: Element
 }) {
   const frame = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
@@ -43,17 +114,20 @@ export function PageView({
     [marks, view],
   )
 
-  useEffect(() => watch(frame.current!, setNear), [])
+  useEffect(() => watch(frame.current!, setNear, root), [root])
 
   useEffect(() => {
     if (!near || !view) return
     const layer = cropped ? undefined : text.current!
-    return enqueue(frame.current!, (signal) =>
-      draw(view, canvas.current!, layer, signal).catch((error) => {
-        if (!signal.aborted) onError(error)
-      }),
+    return enqueue(
+      frame.current!,
+      (signal) =>
+        draw(view, canvas.current!, layer, signal).catch((error) => {
+          if (!signal.aborted) onError(error)
+        }),
+      root,
     )
-  }, [near, view, cropped])
+  }, [near, view, cropped, root])
 
   useEffect(() => {
     if (near) return
