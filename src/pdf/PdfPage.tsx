@@ -1,4 +1,4 @@
-import type { PageViewport, PDFPageProxy } from 'pdfjs-dist'
+import type { PageViewport, PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Button } from '../tools/Button.js'
 import { cn } from '../tools/cn.js'
@@ -12,8 +12,8 @@ import type {
   PdfSource,
 } from './index.js'
 import { toView } from './marks.js'
-import { Failed, PageView, pageName, type View } from './page.js'
-import { quadsOn, resolve } from './resolve.js'
+import { Failed, PageView, pageName, useDrawn, type View } from './page.js'
+import { quadsOn } from './resolve.js'
 
 type Props = {
   source: PdfSource
@@ -34,7 +34,12 @@ type Props = {
   className?: string
 }
 
-type Loaded = { page: PDFPageProxy; sha256: string; printed?: string }
+type Loaded = {
+  document: PDFDocumentProxy
+  page: PDFPageProxy
+  sha256: string
+  printed?: string
+}
 
 /** One page of a PDF, cropped to a passage or whole, with marks on it. */
 export function PdfPage({
@@ -79,7 +84,12 @@ export function PdfPage({
           document.getPageLabels(),
         ])
         if (live)
-          setLoaded({ page: shown, sha256, printed: labels?.[page - 1] })
+          setLoaded({
+            document,
+            page: shown,
+            sha256,
+            printed: labels?.[page - 1],
+          })
       })
       .catch((error) => live && fail(error))
     return () => {
@@ -95,18 +105,7 @@ export function PdfPage({
     onError?.(failure)
   }
 
-  const resolutions = useMemo(
-    () => loaded && resolve(marks, loaded.sha256),
-    [marks, loaded],
-  )
-  useEffect(() => {
-    if (resolutions) onResolve?.(resolutions)
-  }, [JSON.stringify(resolutions)])
-
-  const drawn = useMemo(
-    () => marks.filter((_, i) => resolutions?.[i]?.status === 'exact'),
-    [marks, resolutions],
-  )
+  const drawn = useDrawn(marks, loaded, onResolve, fail)
   const shown = crop && !expanded ? quadsOn(crop, page) : []
   const cropped = shown.length > 0
   const view = useMemo(
@@ -146,7 +145,7 @@ export function PdfPage({
                   ? (label ?? `Page ${page}`)
                   : pageName(page, loaded?.printed)
               }
-              marks={drawn}
+              marks={drawn ?? []}
               current={current}
               onMarkActivate={onMarkActivate}
               onPageClick={onPageClick}

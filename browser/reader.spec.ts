@@ -442,8 +442,8 @@ for (const zoom of [50, 100, 400]) {
       const all = await targets()
       for (const url of new Set(all.map((t) => t.url))) {
         const here = all.filter((t) => t.url === url)
-        const marks = here.map((t) => ({
-          id: `${t.page} ${t.text}`,
+        const marks = here.map((t, i) => ({
+          id: `t${i}`,
           label: t.text,
           anchor: anchor(t.sha256, t.page, t.points),
         }))

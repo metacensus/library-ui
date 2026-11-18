@@ -1,10 +1,11 @@
-import type { PageViewport, PDFPageProxy } from 'pdfjs-dist'
+import type { PageViewport, PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist'
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { Button } from '../tools/Button.js'
 import { Notice } from '../tools/Notice.js'
-import type { PdfMark, PdfPoint } from './index.js'
+import type { PdfMark, PdfPoint, PdfResolution } from './index.js'
 import { hit, Marks, place } from './marks.js'
 import { enqueue, watch } from './queue.js'
+import { resolve } from './resolve.js'
 
 /** What a page shows: `viewport` drawn into `width` by `height` CSS px. */
 export type View = {
@@ -27,6 +28,41 @@ export const Failed = ({ onRetry }: { onRetry: () => void }) => (
     </Button>
   </Notice>
 )
+
+/** The marks to draw on `loaded`, each told to `onResolve` and carrying its
+ *  fresh anchor where reanchored; undefined until they resolve. */
+export function useDrawn(
+  marks: PdfMark[],
+  loaded: { document: PDFDocumentProxy; sha256: string } | undefined,
+  onResolve: ((resolutions: PdfResolution[]) => void) | undefined,
+  onError: (error: unknown) => void,
+): PdfMark[] | undefined {
+  const [resolved, setResolved] = useState<[object, PdfResolution[]]>()
+  const resolutions =
+    loaded && resolved?.[0] === loaded ? resolved[1] : undefined
+  const anchors = JSON.stringify(marks.map(({ id, anchor }) => [id, anchor]))
+  useEffect(() => {
+    if (!loaded) return
+    let live = true
+    resolve(marks, loaded.document, loaded.sha256)
+      .then((resolutions) => live && setResolved([loaded, resolutions]))
+      .catch((error) => live && onError(error))
+    return () => {
+      live = false
+    }
+  }, [loaded, anchors])
+  useEffect(() => {
+    if (resolutions) onResolve?.(resolutions)
+  }, [JSON.stringify(resolutions)])
+  return useMemo(() => {
+    if (!resolutions) return
+    const placed = new Map(resolutions.map((r) => [r.id, r]))
+    return marks.flatMap((mark) => {
+      const { status, anchor = mark.anchor } = placed.get(mark.id) ?? {}
+      return status && status !== 'orphan' ? [{ ...mark, anchor }] : []
+    })
+  }, [marks, resolutions])
+}
 
 /** The iOS limit on one canvas; past it a page renders softer. */
 const maxPixels = 16_777_216

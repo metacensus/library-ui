@@ -18,9 +18,10 @@ import type {
   PdfTarget,
 } from './index.js'
 import { toView } from './marks.js'
-import { Failed, PageView, pageName } from './page.js'
+import { Failed, PageView, pageName, useDrawn } from './page.js'
 import { watch } from './queue.js'
-import { quadsOn, resolve } from './resolve.js'
+import { quadsOf } from './anchor.js'
+import { quadsOn } from './resolve.js'
 import { pageAt, placeOf, restore, type Place } from './scroll.js'
 import { Toolbar, within } from './toolbar.js'
 
@@ -135,29 +136,7 @@ export function PdfReader({
     }
   }, [loaded])
 
-  const [resolved, setResolved] = useState<[Loaded, PdfResolution[]]>()
-  const resolutions = resolved?.[0] === loaded ? resolved?.[1] : undefined
-  const anchors = JSON.stringify(marks.map(({ id, anchor }) => [id, anchor]))
-  useEffect(() => {
-    if (!loaded) return
-    let live = true
-    Promise.resolve(resolve(marks, loaded.sha256))
-      .then((resolutions) => live && setResolved([loaded, resolutions]))
-      .catch((error) => live && fail(error))
-    return () => {
-      live = false
-    }
-  }, [loaded, anchors])
-  useEffect(() => {
-    if (resolutions) onResolve?.(resolutions)
-  }, [JSON.stringify(resolutions)])
-  const drawn = useMemo(() => {
-    const placed = new Map(resolutions?.map((r) => [r.id, r]))
-    return marks.flatMap((mark) => {
-      const { status, anchor = mark.anchor } = placed.get(mark.id) ?? {}
-      return status && status !== 'orphan' ? [{ ...mark, anchor }] : []
-    })
-  }, [marks, resolutions])
+  const drawn = useDrawn(marks, loaded, onResolve, fail)
 
   const now = useRef({ zoom, scale: 0 })
   const capture = (at?: number) => {
@@ -209,17 +188,12 @@ export function PdfReader({
 
   // A mark is found once the marks resolve.
   const targeted =
-    target &&
-    ('page' in target ? `page ${target.page}` : resolutions && target.mark)
+    target && ('page' in target ? `page ${target.page}` : drawn && target.mark)
   useEffect(() => {
     if (!target || !targeted || !loaded) return
     if ('page' in target) return go(target.page)
-    const mark = drawn.find(({ id }) => id === target.mark)
-    const pages = mark?.anchor.selector.flatMap((selector) =>
-      selector.type === 'PdfQuadSelector'
-        ? selector.quads.map(({ page }) => page)
-        : [],
-    )
+    const mark = drawn?.find(({ id }) => id === target.mark)
+    const pages = mark && quadsOf(mark.anchor).map(({ page }) => page)
     if (pages?.length) go(Math.min(...pages), target.mark)
   }, [loaded, targeted, jump])
 
@@ -230,7 +204,7 @@ export function PdfReader({
     const page = goal && fetched[goal.page]
     if (goal && goal !== reached.current && (page || !goal.mark)) {
       reached.current = goal
-      place.current = aim(box, goal, scale, drawn, page)
+      place.current = aim(box, goal, scale, drawn ?? [], page)
     }
     if (place.current) restore(box, place.current, scale)
     place.current ??= placeOf(box, scale)
@@ -361,7 +335,7 @@ export function PdfReader({
                     fetch={fetch}
                     root={box}
                     name={pageName(i + 1, loaded!.labels?.[i])}
-                    marks={drawn}
+                    marks={drawn ?? []}
                     current={current}
                     onMarkActivate={onMarkActivate}
                     onPageClick={onPageClick}
