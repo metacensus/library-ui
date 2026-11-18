@@ -2,15 +2,16 @@
 export type PdfAnchor = {
   source: { sha256: string }
   selector: (
-    | { type: 'PdfQuadSelector'; quads: { page: number; points: number[] }[] }
-    | {
-        type: 'TextQuoteSelector'
-        exact: string
-        prefix?: string
-        suffix?: string
-      }
+    | { type: 'PdfQuadSelector'; quads: Quad[] }
+    | ({ type: 'TextQuoteSelector' } & Quote)
   )[]
 }
+
+export type Quad = { page: number; points: number[] }
+export type Quote = { exact: string; prefix?: string; suffix?: string }
+
+export const quadsOf = (anchor: PdfAnchor): Quad[] =>
+  anchor.selector.flatMap((s) => (s.type === 'PdfQuadSelector' ? s.quads : []))
 
 /** The rect is in PDF user space. */
 export function quadFromRect([x0, y0, x1, y1]: Rect): number[] {

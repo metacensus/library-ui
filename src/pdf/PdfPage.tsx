@@ -62,6 +62,7 @@ export function PdfPage({
   const [attempt, setAttempt] = useState(0)
   const [loaded, setLoaded] = useState<Loaded>()
   const [error, setError] = useState<PdfError>()
+  const [resolutions, setResolutions] = useState<PdfResolution[]>()
   const [expanded, setExpanded] = useState(false)
   const toggled = useRef(false)
 
@@ -97,6 +98,7 @@ export function PdfPage({
       live = false
       lease.release()
       setLoaded(undefined)
+      setResolutions(undefined)
     }
   }, [file, source.sha256, page, attempt])
 
@@ -106,14 +108,12 @@ export function PdfPage({
     onError?.(failure)
   }
 
-  const [resolved, setResolved] = useState<[Loaded, PdfResolution[]]>()
-  const resolutions = resolved?.[0] === loaded ? resolved?.[1] : undefined
   const anchors = JSON.stringify(marks.map(({ id, anchor }) => [id, anchor]))
   useEffect(() => {
     if (!loaded) return
     let live = true
     resolve(marks, loaded.document, loaded.sha256)
-      .then((resolutions) => live && setResolved([loaded, resolutions]))
+      .then((resolutions) => live && setResolutions(resolutions))
       .catch((error) => live && fail(error))
     return () => {
       live = false

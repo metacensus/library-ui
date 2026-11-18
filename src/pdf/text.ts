@@ -69,12 +69,12 @@ export function slice(run: Run, from: number, to: number): number[] {
 }
 
 const graphemes = new Intl.Segmenter()
-const lineBreak = /[^\S\n]*\n/y
+const lineEnd = /[^\S\n]*(?:\n|$)/y
 
 /**
  * `text` as quotes are matched: NFKC, curly quotes and dashes folded, and
- * line-end hyphens, soft hyphens and whitespace removed. `spans[i]` is where in
- * `text` the character that became `folded[i]` lies.
+ * hyphens ending a line or the text, soft hyphens and whitespace removed.
+ * `spans[i]` is where in `text` the character that became `folded[i]` lies.
  */
 export function fold(text: string): {
   folded: string
@@ -84,14 +84,14 @@ export function fold(text: string): {
   const spans: [number, number][] = []
   for (const { segment, index } of graphemes.segment(text)) {
     const end = index + segment.length
-    lineBreak.lastIndex = end
+    lineEnd.lastIndex = end
     const kept = segment
       .normalize('NFKC')
       .replace(/[\u2018-\u201b]/g, "'")
       .replace(/[\u201c-\u201f]/g, '"')
       .replace(/[\u2010-\u2015\u2212]/g, '-')
       .replace(/[\s\u00ad]/g, '')
-      .replace(/^-$/, (hyphen) => (lineBreak.test(text) ? '' : hyphen))
+      .replace(/^-$/, (hyphen) => (lineEnd.test(text) ? '' : hyphen))
     folded += kept
     for (let i = 0; i < kept.length; i++) spans.push([index, end])
   }

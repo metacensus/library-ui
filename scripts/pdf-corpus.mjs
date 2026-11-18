@@ -71,6 +71,8 @@ const truth = ({ page, text, rect: [x0, y0, x1, y1] }) => {
   }
 }
 
+const size = 24
+
 const blackPage = (doc, size) => {
   const page = doc.addPage(size)
   const { x, y, width, height } = page.getMediaBox()
@@ -80,7 +82,6 @@ const blackPage = (doc, size) => {
 
 // Draws `text` in red from (x, y) on its baseline.
 const word = (page, text, x, y, font) => {
-  const size = 24
   page.drawText(text, { x, y, font, size, color: rgb(1, 0, 0) })
   const unit = size / liberation.unitsPerEm
   let pen = x
@@ -99,15 +100,16 @@ const word = (page, text, x, y, font) => {
 
 // Writes `lines` down the page in white but for the parts in [brackets], which
 // are red, and returns the target they make together.
-const prose = (page, font, lines) => {
+const prose = (doc, font, lines) => {
+  const page = blackPage(doc, [400, 300])
   const red = lines.flatMap((text, i) => {
     const y = page.getHeight() - 60 - i * 30
     let x = 30
     return text.split(/[[\]]/).flatMap((part, j) => {
       const at = x
-      x += font.widthOfTextAtSize(part, 24)
+      x += font.widthOfTextAtSize(part, size)
       if (j % 2) return [word(page, part, at, y, font)]
-      page.drawText(part, { x: at, y, font, size: 24, color: rgb(1, 1, 1) })
+      page.drawText(part, { x: at, y, font, size, color: rgb(1, 1, 1) })
       return []
     })
   })
@@ -322,20 +324,14 @@ const files = {
       ['Its ["held"] ratio rose.'],
       ['See [pages 3-5] for the', 'notes on each.'],
       ['Every [highlighted] word', 'keeps its place.'],
-    ].map((lines) => prose(blackPage(doc, [400, 300]), font, lines))
+    ].map((lines) => prose(doc, font, lines))
   },
   // Edition 1 reset: each target a page later and lower, in the embedded font
   // with a ligature, curly quotes, an en dash and a word broken at a line end.
   // Page 4 says its target twice.
   'edition-2.pdf': async (doc) => {
     const font = await doc.embedFont(trueType, { subset: true })
-    blackPage(doc, [400, 300]).drawText('Second edition', {
-      x: 30,
-      y: 240,
-      font,
-      size: 24,
-      color: rgb(1, 1, 1),
-    })
+    prose(doc, font, ['Second edition'])
     return [
       ['Revised:', 'the [ﬁnal] count held,', 'as the ledger shows.'],
       ['', 'Its [“held”] ratio rose.'],
@@ -347,7 +343,7 @@ const files = {
       ],
       ['', 'Every [high-]', '[lighted] word keeps', 'its place.'],
     ].map((lines) => {
-      const found = prose(blackPage(doc, [400, 300]), font, lines)
+      const found = prose(doc, font, lines)
       return { ...found, text: found.text.normalize('NFKC') }
     })
   },

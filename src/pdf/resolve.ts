@@ -1,8 +1,7 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist'
-import type { PdfAnchor, PdfMark, PdfResolution } from './index.js'
+import { quadsOf, type PdfAnchor, type Quad, type Quote } from './anchor.js'
+import type { PdfMark, PdfResolution } from './index.js'
 import { fold, pageText, slice, type PageText, type Run } from './text.js'
-
-type Quad = { page: number; points: number[] }
 
 /**
  * Each mark on `document`: `exact` on the file its quads were measured on,
@@ -42,39 +41,41 @@ async function reanchor(
   text: (page: number) => Promise<PageText>,
 ): Promise<Quad[] | undefined> {
   const quote = anchor.selector.find((s) => s.type === 'TextQuoteSelector')
-  const old = anchor.selector.flatMap((s) =>
-    s.type === 'PdfQuadSelector' ? s.quads : [],
-  )
+  const old = quadsOf(anchor)
   if (!quote || !old.length) return
-  const anchored = old.map(({ page }) => page)
   for (const reach of [0, 1]) {
-    const from = Math.max(1, Math.min(...anchored) - reach)
-    const to = Math.min(pages, Math.max(...anchored) + reach)
-    const window = Array.from(
-      { length: Math.max(0, to - from + 1) },
-      (_, i) => from + i,
-    )
+    const window = [
+      ...new Set(old.flatMap(({ page }) => [page - reach, page, page + reach])),
+    ]
+      .filter((page) => page >= 1 && page <= pages)
+      .sort((a, b) => a - b)
     let joined = ''
     const runs: Run[] = []
-    for (const page of await Promise.all(window.map(text))) {
+    for (const [i, page] of (await Promise.all(window.map(text))).entries()) {
+      // A NUL, in no quote, keeps a match off pages that are not adjacent.
+      if (i && window[i]! > window[i - 1]! + 1) joined += '\0'
       const offset = joined.length
       runs.push(
         ...page.runs.map((run) => ({ ...run, start: run.start + offset })),
       )
       joined += `${page.text}\n`
     }
-    const found = nearest(joined, runs, quote, old[0]!)
+    const found = locate(joined, runs, quote, old)
     if (found) return found
   }
 }
 
+type Nearness = { pages: number; distance: number }
+const nearer = (a: Nearness, b: Nearness) =>
+  a.pages - b.pages || a.distance - b.distance
+
 /** The quote's occurrence in `joined` whose neighbours agree most with its
- *  `prefix` and `suffix`, then the one nearest `old`. */
-function nearest(
+ *  `prefix` and `suffix`, then the one nearest any of the `old` quads. */
+function locate(
   joined: string,
   runs: Run[],
-  quote: { exact: string; prefix?: string; suffix?: string },
-  old: Quad,
+  quote: Quote,
+  old: Quad[],
 ): Quad[] | undefined {
   const { folded, spans } = fold(joined)
   const key = (text = '') => fold(text).folded
@@ -84,51 +85,54 @@ function nearest(
     key(quote.suffix),
   ]
   if (!exact) return
-  const starts: number[] = []
+  const runAt = (at: number) =>
+    runs.find((run) => at < run.start + run.str.length)!
+  const occurrences: number[] = []
   for (let i = folded.indexOf(exact); i >= 0; i = folded.indexOf(exact, i + 1))
-    starts.push(i)
-  return starts
+    occurrences.push(i)
+  const [best] = occurrences
     .map((i) => {
-      const after = i + exact.length
       const start = spans[i]![0]
-      const end = spans[after - 1]![1]
-      const quads = runs.flatMap((run) => {
-        const from = Math.max(0, start - run.start)
-        const to = Math.min(run.str.length, end - run.start)
-        return to > from
-          ? [{ page: run.page, points: slice(run, from, to) }]
-          : []
-      })
-      const { page, points } = quads[0]!
+      const run = runAt(start)
+      const [x, y] = slice(run, start - run.start, start - run.start) as [
+        number,
+        number,
+      ]
+      const [near] = old
+        .map(({ page, points: [ox, oy] }) => ({
+          pages: Math.abs(run.page - page),
+          distance: Math.hypot(x - ox!, y - oy!),
+        }))
+        .sort(nearer)
+      const after = i + exact.length
       return {
-        quads,
+        i,
         context:
           agree(prefix.length, (n) => prefix.at(-1 - n) === folded[i - 1 - n]) +
           agree(suffix.length, (n) => suffix[n] === folded[after + n]),
-        pages: Math.abs(page - old.page),
-        distance: Math.hypot(
-          points[0]! - old.points[0]!,
-          points[1]! - old.points[1]!,
-        ),
+        ...near!,
       }
     })
-    .sort(
-      (a, b) =>
-        b.context - a.context || a.pages - b.pages || a.distance - b.distance,
-    )[0]?.quads
+    .sort((a, b) => b.context - a.context || nearer(a, b))
+  if (!best) return
+  const start = spans[best.i]![0]
+  const end = spans[best.i + exact.length - 1]![1]
+  return runs.flatMap((run) => {
+    const from = Math.max(0, start - run.start)
+    const to = Math.min(run.str.length, end - run.start)
+    return to > from ? [{ page: run.page, points: slice(run, from, to) }] : []
+  })
 }
 
-/** How many of the first `length` characters agree. */
+/** How many of the first `length` characters agree, when at least half do. */
 function agree(length: number, same: (n: number) => boolean): number {
   let n = 0
   while (n < length && same(n)) n++
-  return n
+  return 2 * n >= length ? n : 0
 }
 
 /** The anchor's quads on the 1-based `page`. */
 export const quadsOn = (anchor: PdfAnchor, page: number): number[][] =>
-  anchor.selector.flatMap((selector) =>
-    selector.type === 'PdfQuadSelector'
-      ? selector.quads.filter((q) => q.page === page).map((q) => q.points)
-      : [],
-  )
+  quadsOf(anchor)
+    .filter((q) => q.page === page)
+    .map((q) => q.points)

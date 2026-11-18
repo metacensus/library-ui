@@ -3,28 +3,25 @@ import Ajv2020 from 'ajv/dist/2020.js'
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { quadsOf, type Quad, type Quote } from '../src/pdf/anchor.js'
 import type { PdfAnchor, PdfMark, PdfResolution } from '../src/pdf/index.js'
 
 // The corpus is written when the harness server starts, after tests are listed,
 // so each test reads it as it runs.
 
-type Quad = { page: number; points: number[] }
 type Target = Quad & { text: string }
-type Quote = { exact: string; prefix?: string; suffix?: string }
 
 declare global {
   interface Window {
     resolved?: PdfResolution[]
+    asked?: number[]
   }
 }
 
 const corpus = join(import.meta.dirname, 'corpus')
-// Corpus text is 24 pt.
-const quarterEm = 6
+const quarterEm = 24 / 4
 
-/** Edition `n` of the reprinted file: its URL, hash and targets. */
-function edition(n: number) {
-  const name = `edition-${n}`
+function file(name: string) {
   const bytes = readFileSync(join(corpus, `${name}.pdf`))
   const json = readFileSync(join(corpus, `${name}.json`), 'utf8')
   return {
@@ -42,18 +39,24 @@ const anchor = (sha256: string, quads: Quad[], quote: Quote): PdfAnchor => ({
   ],
 })
 
-/** What a target says, where it says it. */
 const quoted = (sha256: string, { text, ...at }: Target, context = {}) =>
   anchor(sha256, [at], { exact: text, ...context })
+
+const edition = (n: number) => file(`edition-${n}`)
 
 const marks = (...anchors: PdfAnchor[]): PdfMark[] =>
   anchors.map((anchor, i) => ({ id: `m${i}`, label: `mark ${i}`, anchor }))
 
 let mounts = 0
 
-/** Mounts page `at` of edition 2 with `marks`, and returns how they resolved. */
-async function resolveOn(page: Page, marks: PdfMark[], at = 1) {
-  const { url, sha256 } = edition(2)
+/** Mounts page `at` of edition 2, or of `source`, with `marks`, and returns
+ *  how they resolved. */
+async function resolveOn(
+  page: Page,
+  marks: PdfMark[],
+  at = 1,
+  { url, sha256 } = edition(2),
+) {
   await page.evaluate(
     ({ url, sha256, marks, at, key }) => {
       const { pdf, h, mount } = window.harness
@@ -74,10 +77,6 @@ async function resolveOn(page: Page, marks: PdfMark[], at = 1) {
   const resolved = await page.waitForFunction(() => window.resolved)
   return (await resolved.jsonValue()) as PdfResolution[]
 }
-
-/** The anchor's quads, which a `reanchored` resolution carries. */
-const quadsOf = ({ anchor }: PdfResolution): Quad[] =>
-  anchor!.selector.flatMap((s) => (s.type === 'PdfQuadSelector' ? s.quads : []))
 
 /** How far apart, in pt, the bounds of two sets of quads lie at most. */
 function off(a: Quad[], b: Quad[]) {
@@ -112,7 +111,7 @@ test('each target of edition 1 is reanchored on edition 2, within a quarter em o
     const r = resolved[i]!
     expect.soft(r.status, text).toBe('reanchored')
     if (r.status !== 'reanchored') return
-    const quads = quadsOf(r)
+    const quads = quadsOf(r.anchor!)
     expect
       .soft(new Set(quads.map((q) => q.page)), text)
       .toEqual(new Set([truth.page]))
@@ -155,7 +154,7 @@ test('a quote said twice on a page resolves by its prefix and suffix, else neare
   const resolve = async (anchor: PdfAnchor) => {
     const [r] = await resolveOn(page, marks(anchor))
     expect(r!.status).toBe('reanchored')
-    return quadsOf(r!)
+    return quadsOf(r!.anchor!)
   }
 
   const listed = await resolve(
@@ -177,6 +176,9 @@ test('a quote said twice on a page resolves by its prefix and suffix, else neare
   ).toBeLessThanOrEqual(quarterEm)
 
   expect(await resolve(anchor(first.sha256, listed, quote))).toEqual(listed)
+  expect(
+    off(await resolve(quoted(first.sha256, said, { prefix: 'Fact ' })), red),
+  ).toBeLessThanOrEqual(quarterEm)
   expect(
     off(await resolve(quoted(first.sha256, said)), red),
   ).toBeLessThanOrEqual(quarterEm)
@@ -204,4 +206,40 @@ test('a quote two pages from its anchored page, or nowhere, is an orphan and not
   ])
   await expect(page.locator('.mc-pdf-mark')).toHaveCount(1)
   await expect(page.locator('[data-mark="m0"]')).toHaveCount(1)
+})
+
+test('a quote that ends in a line-end hyphen is found', async ({ page }) => {
+  const first = edition(1)
+  const [r] = await resolveOn(
+    page,
+    marks(quoted(first.sha256, { ...first.targets[3]!, text: 'Every high-' })),
+  )
+  expect(r!.status).toBe('reanchored')
+})
+
+test('only the anchored pages and their neighbours are read, however far apart', async ({
+  page,
+}) => {
+  const thousand = file('thousand-pages')
+  await page.evaluate(async (source) => {
+    const { documents, pdf } = window.harness
+    pdf.configurePdf({ assets: '/pdf-assets/' })
+    const document = await documents.open(source).document
+    const getPage = document.getPage.bind(document)
+    window.asked = []
+    document.getPage = (n) => (window.asked!.push(n), getPage(n))
+  }, thousand)
+  const { points } = thousand.targets.find(({ text }) => text === '900')!
+  const quads = [3, 900].map((page) => ({ page, points }))
+  const [r] = await resolveOn(
+    page,
+    marks(anchor('f'.repeat(64), quads, { exact: '900' })),
+    1,
+    thousand,
+  )
+
+  expect(r!.status).toBe('reanchored')
+  expect(new Set(await page.evaluate(() => window.asked))).toEqual(
+    new Set([1, 3, 900]),
+  )
 })
