@@ -1,40 +1,46 @@
 import { expect, test, type Page } from '@playwright/test'
-import Ajv2020 from 'ajv/dist/2020.js'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { quadsOf } from '../src/pdf/anchor.js'
 import type { PdfAnchor, PdfMark } from '../src/pdf/index.js'
-import { corpus, quadsOff, quarterEm, sha256, targets } from './targets.js'
+import {
+  corpus,
+  quadsOff,
+  quarterEm,
+  sha256,
+  targets,
+  valid,
+} from './targets.js'
 
-type Shown = { url: string; sha256: string; marks?: PdfMark[] }
-
-const valid = new Ajv2020().compile(
-  JSON.parse(
-    readFileSync(
-      join(import.meta.dirname, '../src/pdf/anchor.schema.json'),
-      'utf8',
-    ),
-  ),
-)
+type Shown = {
+  url: string
+  sha256: string
+  /** `PdfPage`'s. */
+  page?: number
+  width: number
+  height?: number
+  marks?: PdfMark[]
+}
 
 let mounts = 0
 
 /** Mounts `component` on `url` in a `main` `width` by `height` px, its
- *  `onSelect` and `onResolve` logged to `window.calls`. Called again with the
- *  same `key`, it updates the component. */
+ *  `onSelect` and `onResolve` logged to `window.calls`, and waits for React to
+ *  commit it. Called again with the same `key`, it updates the component. */
 async function mount(
   page: Page,
   component: 'PdfPage' | 'PdfReader',
-  { url, sha256, marks }: Shown,
-  {
-    width,
-    height,
-    key = ++mounts,
-  }: { width: number; height?: number; key?: number },
-  props: object = {},
+  shown: Shown,
+  key?: number,
 ) {
+  const id = ++mounts
   await page.evaluate(
-    ({ component, url, sha256, marks, width, height, key, props }) => {
+    ({
+      component,
+      shown: { url, sha256, width, height, ...props },
+      id,
+      key,
+    }) => {
       const { pdf, h, mount } = window.harness
       pdf.configurePdf({ assets: '/pdf-assets/' })
       const calls: unknown[][] = (window.calls = [])
@@ -42,6 +48,7 @@ async function mount(
         h(
           'main',
           {
+            'data-mount': id,
             style: {
               display: 'grid',
               gridTemplateRows: 'auto minmax(0, 1fr)',
@@ -55,16 +62,16 @@ async function mount(
             page: 1,
             ...props,
             source: { url, sha256 },
-            marks,
             onSelect: (anchor) => calls.push(['select', anchor]),
             onResolve: (resolutions) => calls.push(['resolve', resolutions]),
           }),
         ),
       )
     },
-    { component, url, sha256, marks, width, height, key, props },
+    { component, shown, id, key: key ?? id },
   )
-  return key
+  await page.locator(`main[data-mount="${id}"]`).waitFor()
+  return key ?? id
 }
 
 /** What the first `n` calls to `name` were given, once there are `n`. */
@@ -152,11 +159,9 @@ async function resolvesExact(
   component: 'PdfPage' | 'PdfReader',
   shown: Shown,
   anchor: PdfAnchor,
-  size: { width: number; height?: number },
-  props?: object,
 ) {
   const mark = { id: 'selected', label: 'selected', anchor }
-  await mount(page, component, { ...shown, marks: [mark] }, size, props)
+  await mount(page, component, { ...shown, marks: [mark] })
   const [resolutions] = await given<unknown>(page, 1, 'resolve')
   expect(resolutions).toEqual([{ id: 'selected', status: 'exact' }])
   await expect(page.locator('[data-mark="selected"]')).not.toHaveCount(0)
@@ -179,11 +184,9 @@ test('a target selected by mouse or by keyboard gives its quote and quads once, 
 }) => {
   for (const t of await selected()) {
     const name = `${t.url} ${t.text}`
-    const size = { width: t.width }
-    const props = { page: t.page }
     const anchors: PdfAnchor[] = []
     for (const select of [dragAcross, shiftAcross]) {
-      await mount(page, 'PdfPage', t, size, props)
+      await mount(page, 'PdfPage', t)
       await select(page, t.text)
       await given(page, 1)
       await page.mouse.click(1, 1)
@@ -200,13 +203,13 @@ test('a target selected by mouse or by keyboard gives its quote and quads once, 
     expect(new Set(quads.map((q) => q.page)), name).toEqual(new Set([t.page]))
     for (const quad of quads)
       expect(quadsOff([quad], [t]), name).toBeLessThanOrEqual(quarterEm)
-    await resolvesExact(page, 'PdfPage', t, anchor, size, props)
+    await resolvesExact(page, 'PdfPage', t, anchor)
   }
 })
 
 test('a quote carries up to 32 characters either side', async ({ page }) => {
   const t = (await selected()).find(({ url }) => url.endsWith('edition-2.pdf'))!
-  await mount(page, 'PdfPage', t, { width: t.width }, { page: t.page })
+  await mount(page, 'PdfPage', t)
   await dragAcross(page, t.text)
   const [anchor] = await given(page, 1)
   const { prefix, suffix } = quoteOf(anchor!)
@@ -219,7 +222,7 @@ test('a selection that ends outside the component gives nothing', async ({
   page,
 }) => {
   const t = (await selected())[0]!
-  await mount(page, 'PdfPage', t, { width: t.width }, { page: t.page })
+  await mount(page, 'PdfPage', t)
   const { before } = await find(page, t.text)
   const heading = await page.getByRole('heading').boundingBox()
   await page.mouse.move(before.x, before.y)
@@ -235,6 +238,31 @@ test('a selection that ends outside the component gives nothing', async ({
   expect(quoteOf(anchor!).exact).toBe(t.text)
 })
 
+test('a selection gives null once its source changes', async ({ page }) => {
+  const [t, other] = await selected()
+  const key = await mount(page, 'PdfPage', t!)
+  await dragAcross(page, t!.text)
+  await given(page, 1)
+  await mount(page, 'PdfPage', other!, key)
+  expect(await given(page, 1)).toEqual([null])
+})
+
+test('a selectionchange after the pointer is released gives no second call', async ({
+  page,
+}) => {
+  const t = (await selected())[0]!
+  await mount(page, 'PdfPage', t)
+  await dragAcross(page, t.text)
+  await given(page, 1)
+  await page.clock.install()
+  await page.evaluate(() =>
+    document.dispatchEvent(new Event('selectionchange')),
+  )
+  await page.clock.runFor(1000)
+  // A second call would be logged by now, as the page's text is already read.
+  expect(await given(page, 1)).toHaveLength(1)
+})
+
 test('a selection from page 3 to 5 keeps their text layers, and gives quads on each while 4 is far from view', async ({
   page,
 }) => {
@@ -242,6 +270,8 @@ test('a selection from page 3 to 5 keeps their text layers, and gives quads on e
   const shown = {
     url: `/corpus/${file}`,
     sha256: sha256(readFileSync(join(corpus, file))),
+    width: 400,
+    height: 1700,
   }
   const slot = (n: number) => page.locator('.mc-pdf-slot').nth(n - 1)
   const canvas = (n: number) =>
@@ -256,10 +286,7 @@ test('a selection from page 3 to 5 keeps their text layers, and gives quads on e
         to,
       )
   const said = () => page.evaluate(() => getSelection()!.toString())
-  const key = await mount(page, 'PdfReader', shown, {
-    width: 400,
-    height: 1700,
-  })
+  const key = await mount(page, 'PdfReader', shown)
   for (const n of [3, 4, 5])
     await expect(slot(n).locator('.mc-pdf-text > span')).not.toHaveCount(0)
   const across = (end?: number) =>
@@ -285,7 +312,7 @@ test('a selection from page 3 to 5 keeps their text layers, and gives quads on e
   )
 
   // A short view at the top leaves pages 3 to 5 over 3 screens away.
-  await mount(page, 'PdfReader', shown, { width: 400, height: 270, key })
+  await mount(page, 'PdfReader', { ...shown, height: 270 }, key)
   await scroll('top')
   for (const n of [3, 4, 5]) await expect.poll(() => canvas(n)).toBe(0)
   for (const n of [3, 4, 5])
@@ -302,11 +329,13 @@ test('a selection from page 3 to 5 keeps their text layers, and gives quads on e
   await expect.poll(() => canvas(5)).toBeGreaterThan(0)
   expect(await said()).toBe(before)
 
+  // Cleared, the selection keeps no layer on a page far from view.
+  await page.evaluate(() => getSelection()!.removeAllRanges())
+  for (const n of [3, 4])
+    await expect(slot(n).locator('.mc-pdf-text')).toHaveCount(0)
+
   for (const anchor of [whole!, shorter!]) {
     expect(valid(anchor), JSON.stringify(valid.errors)).toBe(true)
-    await resolvesExact(page, 'PdfReader', shown, anchor, {
-      width: 400,
-      height: 1700,
-    })
+    await resolvesExact(page, 'PdfReader', shown, anchor)
   }
 })

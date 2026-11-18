@@ -1,10 +1,9 @@
 import { expect, test, type Page } from '@playwright/test'
-import Ajv2020 from 'ajv/dist/2020.js'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { quadsOf, type Quad, type Quote } from '../src/pdf/anchor.js'
 import type { PdfAnchor, PdfMark, PdfResolution } from '../src/pdf/index.js'
-import { corpus, quadsOff, quarterEm, sha256 } from './targets.js'
+import { corpus, quadsOff, quarterEm, sha256, valid } from './targets.js'
 
 type Target = Quad & { text: string }
 
@@ -108,13 +107,6 @@ test('a reanchored anchor is valid, names the new file, and resolves exact there
     page,
     marks(...first.targets.map((t) => quoted(first.sha256, t))),
   )
-  const schema = JSON.parse(
-    readFileSync(
-      join(import.meta.dirname, '../src/pdf/anchor.schema.json'),
-      'utf8',
-    ),
-  )
-  const valid = new Ajv2020().compile(schema)
   for (const { anchor } of resolved) {
     expect(valid(anchor), JSON.stringify(valid.errors)).toBe(true)
     expect(anchor!.source.sha256).toBe(second.sha256)

@@ -7,7 +7,7 @@ import type { PdfError, PdfMark, PdfPoint, PdfResolution } from './index.js'
 import { hit, Marks, place } from './marks.js'
 import { enqueue, watch } from './queue.js'
 import { resolve } from './resolve.js'
-import { holds } from './select.js'
+import { inSelection } from './select.js'
 
 /** What a page shows: `viewport` drawn into `width` by `height` CSS px. */
 export type View = {
@@ -142,11 +142,16 @@ export function PageView({
   useEffect(() => {
     if (near) return
     canvas.current!.width = 0
-    if (!holds(text.current)) {
+    view?.page.cleanup()
+    const release = () => {
+      if (inSelection(text.current)) return
+      document.removeEventListener('selectionchange', release)
       text.current?.replaceChildren()
       textFor.current = undefined
     }
-    view?.page.cleanup()
+    document.addEventListener('selectionchange', release)
+    release()
+    return () => document.removeEventListener('selectionchange', release)
   }, [near, view])
 
   useEffect(() => {

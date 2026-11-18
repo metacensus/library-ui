@@ -16,7 +16,7 @@ export type Run = {
 /** A page's text, a line break after each line, and the runs it is made of. */
 export type PageText = { text: string; runs: Run[] }
 
-export async function pageText(page: PDFPageProxy): Promise<PageText> {
+async function pageText(page: PDFPageProxy): Promise<PageText> {
   const { items, styles } = await page.getTextContent()
   let text = ''
   const runs: Run[] = []

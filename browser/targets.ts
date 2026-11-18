@@ -1,5 +1,6 @@
 // The corpus is written when the harness server starts, after tests are listed,
 // so each test reads it as it runs.
+import Ajv2020 from 'ajv/dist/2020.js'
 import { createHash } from 'node:crypto'
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -59,27 +60,37 @@ export const anchor = (sha256: string, page: number, ...quads: number[][]) => ({
 /** The corpus's font size over 4, in pt. */
 export const quarterEm = 24 / 4
 
-/** How far apart, in pt, the bounds of two sets of quads lie at most. */
-export function quadsOff(a: Quad[], b: Quad[]) {
-  const bounds = (quads: Quad[]) => {
-    const xs = quads.flatMap(({ points }) =>
-      points.filter((_, i) => i % 2 === 0),
-    )
-    const ys = quads.flatMap(({ points }) =>
-      points.filter((_, i) => i % 2 === 1),
-    )
-    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]
-  }
-  const [p, q] = [bounds(a), bounds(b)]
-  return Math.max(...p.map((v, i) => Math.abs(v - q[i]!)))
-}
-
 export const off = (a: Box, b: Box) =>
   Math.max(
     ...(['left', 'top', 'right', 'bottom'] as const).map((edge) =>
       Math.abs(a[edge] - b[edge]),
     ),
   )
+
+/** How far apart, in pt, the bounds of two sets of quads lie at most. */
+export function quadsOff(a: Quad[], b: Quad[]) {
+  const bounds = (quads: Quad[]): Box => {
+    const xs = quads.flatMap(({ points }) => points.filter((_, i) => !(i % 2)))
+    const ys = quads.flatMap(({ points }) => points.filter((_, i) => i % 2))
+    return {
+      left: Math.min(...xs),
+      top: Math.min(...ys),
+      right: Math.max(...xs),
+      bottom: Math.max(...ys),
+    }
+  }
+  return off(bounds(a), bounds(b))
+}
+
+/** Whether an anchor passes `anchor.schema.json`; its `errors` say why not. */
+export const valid = new Ajv2020().compile(
+  JSON.parse(
+    readFileSync(
+      join(import.meta.dirname, '../src/pdf/anchor.schema.json'),
+      'utf8',
+    ),
+  ),
+)
 
 export const grow = ({ left, top, right, bottom }: Box, by: number): Box => ({
   left: left - by,

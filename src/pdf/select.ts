@@ -5,10 +5,10 @@ import { pageTexts, quadsBetween, type PageText } from './text.js'
 
 const context = 32
 
-/**
- * Gives `onSelect` each selection with both ends in `root`'s text, once the
- * pointer or Shift making it is released, and null once the one it gave is gone.
- */
+/** Ms after its last change that a selection ends, unless an input's release
+ *  ends it first. */
+const settling = 250
+
 export function useSelect(
   root: Element | null,
   loaded: { document: PDFDocumentProxy; sha256: string } | undefined,
@@ -24,55 +24,62 @@ export function useSelect(
     let pressed = false
     let shifted = false
     let changed = false
-    let given = false
+    let given = 'null'
     let asked = 0
+    let waiting: ReturnType<typeof setTimeout> | undefined
     const give = (anchor: PdfAnchor | null) => {
-      if (!anchor && !given) return
-      given = !!anchor
+      const said = JSON.stringify(anchor)
+      if (said === given) return
+      given = said
       latest.current?.(anchor)
     }
     const settle = () => {
+      clearTimeout(waiting)
       if (!changed || pressed || shifted) return
       changed = false
       const ask = ++asked
-      anchorOf(getSelection()!, root, text, loaded.sha256)
+      anchorOf(root, text, loaded.sha256)
         .then((anchor) => ask === asked && give(anchor))
         .catch((error) => ask === asked && onError(error))
     }
     const selected = () => {
-      const selection = getSelection()
-      changed = !!selection?.rangeCount && !selection.isCollapsed
-      if (changed) return settle()
-      asked++
-      give(null)
+      clearTimeout(waiting)
+      changed = !getSelection()!.isCollapsed
+      if (changed) waiting = setTimeout(settle, settling)
+      else {
+        asked++
+        give(null)
+      }
     }
-    const input = (event: PointerEvent | KeyboardEvent) => {
-      if (event.type.startsWith('pointer'))
-        pressed = event.type === 'pointerdown'
-      shifted = event.shiftKey
+    const input = (event: Event) => {
+      if (event.type === 'pointerdown') pressed = true
+      else if (!event.type.startsWith('key')) pressed = false
+      shifted = 'shiftKey' in event && !!event.shiftKey
       settle()
     }
     const inputs = [
       'pointerdown',
       'pointerup',
       'pointercancel',
+      'contextmenu',
       'keydown',
       'keyup',
     ]
     document.addEventListener('selectionchange', selected)
-    for (const type of inputs)
-      document.addEventListener(type, input as EventListener, true)
+    for (const type of inputs) document.addEventListener(type, input, true)
+    addEventListener('blur', input)
     return () => {
       asked++
+      clearTimeout(waiting)
       document.removeEventListener('selectionchange', selected)
-      for (const type of inputs)
-        document.removeEventListener(type, input as EventListener, true)
+      for (const type of inputs) document.removeEventListener(type, input, true)
+      removeEventListener('blur', input)
+      give(null)
     }
   }, [root, loaded, listening])
 }
 
-/** Whether the selection, an end of it or the text between, lies in `node`. */
-export const holds = (node: Node | null) => {
+export const inSelection = (node: Node | null) => {
   const selection = getSelection()
   return (
     !!node &&
@@ -85,11 +92,11 @@ export const holds = (node: Node | null) => {
 type Place = { page: number; run: number; at: number }
 
 async function anchorOf(
-  selection: Selection,
   root: Element,
   text: (page: number) => Promise<PageText>,
   sha256: string,
 ): Promise<PdfAnchor | null> {
+  const selection = getSelection()!
   if (!selection.rangeCount) return null
   const range = selection.getRangeAt(0)
   if (
