@@ -587,13 +587,19 @@ test('a scroll drops an arrow move still waiting for its page', async ({
 }) => {
   await delayPage(page, 100, 1500)
   await show(page, { ...thousand, marks: await crossMarks() })
-  await page.locator('.mc-pdf-scroll').focus()
+  const view = page.locator('.mc-pdf-scroll')
+  await view.focus()
   await page.keyboard.press('Tab')
+  const one = page.locator('[data-mark="1"]:focus')
+  await expect(one).toHaveCount(1)
   await page.keyboard.press('ArrowRight')
-  await scrollTo(page, 20, 0.5)
-  await page.waitForTimeout(2000)
-  expect((await top(page)).page).toBe(20)
-  await expect(page.locator('[data-mark="1"]:focus')).toHaveCount(1)
+  // Mark 1 stays in view, since WebKit may scroll back to reveal it.
+  await view.evaluate((view) => (view.scrollTop += 100))
+  await expect(
+    page.getByRole('region', { name: 'Page 100', exact: true }),
+  ).toBeAttached()
+  expect(await view.evaluate((view) => view.scrollTop)).toBeCloseTo(100, 0)
+  await expect(one).toHaveCount(1)
 })
 
 test('pages more than 3 screens away release their canvases', async ({
