@@ -48,4 +48,4 @@ export function quadsFromFractions(
 
 type Rect = [x0: number, y0: number, x1: number, y1: number]
 
-const round = (n: number) => Math.round(n * 100) / 100
+export const round = (n: number) => Math.round(n * 100) / 100

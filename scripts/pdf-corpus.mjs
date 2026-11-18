@@ -97,6 +97,27 @@ const word = (page, text, x, y, font) => {
   return target(page, text, boxes)
 }
 
+// Writes `lines` down the page in white but for the parts in [brackets], which
+// are red, and returns the target they make together.
+const prose = (page, font, lines) => {
+  const red = lines.flatMap((text, i) => {
+    const y = page.getHeight() - 60 - i * 30
+    let x = 30
+    return text.split(/[[\]]/).flatMap((part, j) => {
+      const at = x
+      x += font.widthOfTextAtSize(part, 24)
+      if (j % 2) return [word(page, part, at, y, font)]
+      page.drawText(part, { x: at, y, font, size: 24, color: rgb(1, 1, 1) })
+      return []
+    })
+  })
+  return target(
+    page,
+    red.map(({ text }) => text).join(''),
+    red.map(({ rect }) => rect),
+  )
+}
+
 // Capitals built of rectangles [x, y, width, height] in a 1000-unit em: the
 // Type3 font's glyphs, and the letters of the scanned page.
 const em = { advance: 600, cap: 700 }
@@ -293,6 +314,42 @@ const files = {
         targets.push(word(page, `${n}`, 30, 130, font))
     }
     return targets
+  },
+  'edition-1.pdf': async (doc) => {
+    const font = await doc.embedFont(StandardFonts.Helvetica)
+    return [
+      ['The [final] count held,', 'as the ledger shows.'],
+      ['Its ["held"] ratio rose.'],
+      ['See [pages 3-5] for the', 'notes on each.'],
+      ['Every [highlighted] word', 'keeps its place.'],
+    ].map((lines) => prose(blackPage(doc, [400, 300]), font, lines))
+  },
+  // Edition 1 reset: each target a page later and lower, in the embedded font
+  // with a ligature, curly quotes, an en dash and a word broken at a line end.
+  // Page 4 says its target twice.
+  'edition-2.pdf': async (doc) => {
+    const font = await doc.embedFont(trueType, { subset: true })
+    blackPage(doc, [400, 300]).drawText('Second edition', {
+      x: 30,
+      y: 240,
+      font,
+      size: 24,
+      color: rgb(1, 1, 1),
+    })
+    return [
+      ['Revised:', 'the [ﬁnal] count held,', 'as the ledger shows.'],
+      ['', 'Its [“held”] ratio rose.'],
+      [
+        '',
+        'See [pages 3–5] for the',
+        'notes on each, and',
+        'list pages 3–5 again.',
+      ],
+      ['', 'Every [high-]', '[lighted] word keeps', 'its place.'],
+    ].map((lines) => {
+      const found = prose(blackPage(doc, [400, 300]), font, lines)
+      return { ...found, text: found.text.normalize('NFKC') }
+    })
   },
   'script.pdf': async (doc) => {
     const font = await doc.embedFont(StandardFonts.Helvetica)
