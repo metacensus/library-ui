@@ -178,6 +178,7 @@ export function PdfReader({
     fetch(n)
     wanted.current = { page: n, mark }
     setGoal(wanted.current)
+    return wanted.current
   }
 
   // A mark's page is known once the marks resolve.
@@ -189,6 +190,16 @@ export function PdfReader({
   useEffect(() => {
     if (loaded && to) go(to, mark)
   }, [loaded, mark, to, jump])
+
+  // Ahead of the effect below, which marks its goal reached.
+  const roving = useRoving(
+    drawn,
+    fetched,
+    current,
+    box,
+    go,
+    (goal) => goal === wanted.current && goal !== reached.current,
+  )
 
   // Before paint, after every change of size: to a goal, once its mark's page
   // is fetched, else back to the reader's place.
@@ -208,9 +219,6 @@ export function PdfReader({
     scrolledTo.current = { top: box.scrollTop, left: box.scrollLeft }
     setShown(pageAt(box, box.clientHeight / 2))
   }, [box, scale, fetched, goal])
-
-  // After the effect above, so a mark's focus scrolls from the restored place.
-  const roving = useRoving(drawn, fetched, current, box, go)
 
   const scrolled = () => {
     if (!box || !scale || gesture.current) return
@@ -360,17 +368,19 @@ export function PdfReader({
   )
 }
 
-/** One tab stop over every page's marks, kept on a fetched page, since only
- *  those are in the DOM. A move onto a page not yet fetched goes there first. */
+/** A move onto a page not yet fetched, from the mark focused at the time. */
+type Seek = { goal: Goal; last: boolean; from: Element | null }
+
 function useRoving(
   marks: PdfMark[] | undefined,
   fetched: Record<number, PDFPageProxy>,
   current: string | undefined,
   box: Element | null,
-  go: (page: number) => void,
+  go: (page: number, mark?: string) => Goal | undefined,
+  waiting: (goal: Goal) => boolean,
 ): Roving {
   const [focused, setFocused] = useState<string>()
-  const [seek, setSeek] = useState<number>()
+  const [seek, setSeek] = useState<Seek>()
   const order = useMemo(
     () => readingOrder(marks ?? [], fetched),
     [marks, fetched],
@@ -379,16 +389,21 @@ function useRoving(
     .map((id) => order.find((mark) => mark.id === id))
     .concat(order)
     .find((mark) => mark && fetched[mark.page])
+  const markOn = (page: number, id: string) => {
+    const slot = box!.querySelectorAll('.mc-pdf-slot')[page - 1]!
+    return slot.querySelector<SVGGElement>(`[data-mark="${CSS.escape(id)}"]`)!
+  }
 
   useLayoutEffect(() => {
-    const to = seek === undefined ? undefined : order[seek]
-    if (!box || !to || !fetched[to.page]) return
+    if (!seek || !fetched[seek.goal.page]) return
     setSeek(undefined)
-    const slot = box.querySelectorAll('.mc-pdf-slot')[to.page - 1]!
-    slot
-      .querySelector<SVGGElement>(`[data-mark="${CSS.escape(to.id)}"]`)!
-      .focus()
-  }, [box, seek, order])
+    const here = order.filter(({ page }) => page === seek.goal.page)
+    const to = seek.last ? here.at(-1) : here[0]
+    if (!to || !waiting(seek.goal) || document.activeElement !== seek.from)
+      return
+    if (to.id !== seek.goal.mark) go(to.page, to.id)
+    markOn(to.page, to.id).focus({ preventScroll: true })
+  }, [seek, order])
 
   return {
     isStop: (id, page) => id === stop?.id && page === stop.page,
@@ -400,8 +415,13 @@ function useRoving(
         order.length,
       )
       if (to === undefined) return false
-      if (!fetched[order[to]!.page]) go(order[to]!.page)
-      setSeek(to)
+      const { id, page } = order[to]!
+      if (fetched[page]) markOn(page, id).focus()
+      else {
+        const goal = go(page, id)
+        const last = order[to - 1]?.page === page
+        if (goal) setSeek({ goal, last, from: document.activeElement })
+      }
       return true
     },
   }

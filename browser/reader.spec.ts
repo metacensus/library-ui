@@ -493,46 +493,48 @@ test('a scroll drops a mark jump still waiting for its page', async ({
   expect((await top(page)).page).toBe(20)
 })
 
+// Pages 100 and 1000 give their right half first, against reading order.
+const crossMarks = async () =>
+  (await thousandMarks()).flatMap((mark) => {
+    const { quads } = mark.anchor.selector[0]!
+    const { page, points } = quads[0]!
+    if (page === 1) quads.push({ page: 2, points })
+    if (page === 200) quads[0]!.points = points.map((n, i) => n - (i % 2) * 115)
+    if (page !== 100 && page !== 1000) return [mark]
+    const xs = points.filter((_, i) => i % 2 === 0)
+    const ys = points.filter((_, i) => i % 2)
+    const [l, r, b, t] = [
+      Math.min(...xs),
+      Math.max(...xs),
+      Math.min(...ys),
+      Math.max(...ys),
+    ]
+    const m = (l + r) / 2
+    return (
+      [
+        ['b', m, r],
+        ['a', l, m],
+      ] as const
+    ).map(([half, from, to]) => ({
+      id: mark.id + half,
+      label: mark.label + half,
+      anchor: anchor(mark.anchor.source.sha256, page, [
+        from,
+        b,
+        to,
+        b,
+        to,
+        t,
+        from,
+        t,
+      ]),
+    }))
+  })
+
 test('one tab stop covers every page, and arrows cross pages in reading order', async ({
   page,
 }) => {
-  // Pages 100 and 1000 each hold two marks, given right half first.
-  const halves = (t: Awaited<ReturnType<typeof targets>>[number]) => {
-    const [x0, y0, x1, y1] = [
-      t.points[0]!,
-      t.points[1]!,
-      t.points[2]!,
-      t.points[5]!,
-    ]
-    const middle = (x0 + x1) / 2
-    return (
-      [
-        ['b', middle, x1],
-        ['a', x0, middle],
-      ] as const
-    ).map(([half, l, r]) => ({
-      id: `${t.text}${half}`,
-      label: `page ${t.text}${half}`,
-      anchor: anchor(t.sha256, t.page, [l, y0, r, y0, r, y1, l, y1]),
-    }))
-  }
-  const marks = (await targets())
-    .filter(({ url }) => url === thousand.url)
-    .flatMap((t) =>
-      ['100', '1000'].includes(t.text)
-        ? halves(t)
-        : [
-            {
-              id: t.text,
-              label: `page ${t.text}`,
-              anchor: anchor(t.sha256, t.page, t.points),
-            },
-          ],
-    )
-  // Mark 1 runs on onto page 2, where it is drawn again but is no stop.
-  const one = marks.find(({ id }) => id === '1')!.anchor.selector[0]!
-  one.quads.push({ ...one.quads[0]!, page: 2 })
-  await show(page, { ...thousand, marks })
+  await show(page, { ...thousand, marks: await crossMarks() })
   await expect(page.locator('[data-mark="1"]')).toHaveCount(2)
   const focused = () =>
     page.evaluate(() => (document.activeElement as HTMLElement).dataset.mark)
@@ -546,11 +548,7 @@ test('one tab stop covers every page, and arrows cross pages in reading order', 
   expect(await focused()).toBe('1')
   await expect(stops).toHaveCount(1)
   await page.keyboard.press('Tab')
-  expect(
-    await page.evaluate(() =>
-      document.activeElement!.closest('.mc-pdf-reader'),
-    ),
-  ).toBeNull()
+  await expect(page.locator('.mc-pdf-reader :focus')).toHaveCount(0)
 
   await tabIn()
   for (const [key, id] of [
@@ -582,6 +580,20 @@ test('one tab stop covers every page, and arrows cross pages in reading order', 
   expect(await focused()).toBe('100a')
   await expect(page.locator(':focus')).toBeInViewport()
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+})
+
+test('a scroll drops an arrow move still waiting for its page', async ({
+  page,
+}) => {
+  await delayPage(page, 100, 1500)
+  await show(page, { ...thousand, marks: await crossMarks() })
+  await page.locator('.mc-pdf-scroll').focus()
+  await page.keyboard.press('Tab')
+  await page.keyboard.press('ArrowRight')
+  await scrollTo(page, 20, 0.5)
+  await page.waitForTimeout(2000)
+  expect((await top(page)).page).toBe(20)
+  await expect(page.locator('[data-mark="1"]:focus')).toHaveCount(1)
 })
 
 test('pages more than 3 screens away release their canvases', async ({

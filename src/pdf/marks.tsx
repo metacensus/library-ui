@@ -125,8 +125,6 @@ export const firstPage = (mark?: PdfMark) => {
   return pages?.length ? Math.min(...pages) : undefined
 }
 
-/** Each mark once, on the first page it is on: by page, then as `place`
- *  orders a page's marks once that page is fetched. */
 export function readingOrder(
   marks: PdfMark[],
   fetched: Record<number, PDFPageProxy>,
@@ -152,11 +150,10 @@ export function readingOrder(
 export type Roving = {
   isStop: (id: string, page: number) => boolean
   focused: (id: string) => void
-  /** Focuses the mark `key` moves to from `id`; false for a key that moves none. */
+  /** False for a key that is no move. */
   move: (id: string, key: string) => boolean
 }
 
-/** A reader's stop over every page's marks; absent, each page keeps its own. */
 export const ReaderRoving = createContext<Roving | undefined>(undefined)
 
 export function step(key: string, i: number, count: number) {
