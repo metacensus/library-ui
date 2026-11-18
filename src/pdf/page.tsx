@@ -1,5 +1,7 @@
 import type { PageViewport, PDFPageProxy } from 'pdfjs-dist'
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
+import { Button } from '../tools/Button.js'
+import { Notice } from '../tools/Notice.js'
 import type { PdfMark, PdfPoint } from './index.js'
 import { hit, Marks, place } from './marks.js'
 import { enqueue, watch } from './queue.js'
@@ -11,6 +13,20 @@ export type View = {
   width: number
   height: number
 }
+
+/** A whole page's accessible name, with its printed label when that differs. */
+export const pageName = (page: number, printed?: string) =>
+  printed && printed !== String(page)
+    ? `Page ${page}, printed page ${printed}`
+    : `Page ${page}`
+
+export const Failed = ({ onRetry }: { onRetry: () => void }) => (
+  <Notice title="This PDF could not be shown.">
+    <Button variant="secondary" onClick={onRetry}>
+      Retry
+    </Button>
+  </Notice>
+)
 
 /** The iOS limit on one canvas; past it a page renders softer. */
 const maxPixels = 16_777_216
@@ -24,6 +40,7 @@ export function PageView({
   onMarkActivate,
   onPageClick,
   onError,
+  root,
 }: {
   view?: View
   cropped: boolean
@@ -33,6 +50,8 @@ export function PageView({
   onMarkActivate?: (id: string) => void
   onPageClick?: (point: PdfPoint) => void
   onError: (error: unknown) => void
+  /** The box the page scrolls in; absent, the window. */
+  root?: Element
 }) {
   const frame = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
@@ -43,17 +62,20 @@ export function PageView({
     [marks, view],
   )
 
-  useEffect(() => watch(frame.current!, setNear), [])
+  useEffect(() => watch(frame.current!, setNear, root), [root])
 
   useEffect(() => {
     if (!near || !view) return
     const layer = cropped ? undefined : text.current!
-    return enqueue(frame.current!, (signal) =>
-      draw(view, canvas.current!, layer, signal).catch((error) => {
-        if (!signal.aborted) onError(error)
-      }),
+    return enqueue(
+      frame.current!,
+      (signal) =>
+        draw(view, canvas.current!, layer, signal).catch((error) => {
+          if (!signal.aborted) onError(error)
+        }),
+      root,
     )
-  }, [near, view, cropped])
+  }, [near, view, cropped, root])
 
   useEffect(() => {
     if (near) return

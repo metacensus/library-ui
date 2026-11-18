@@ -2,7 +2,6 @@ import type { PageViewport, PDFPageProxy } from 'pdfjs-dist'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Button } from '../tools/Button.js'
 import { cn } from '../tools/cn.js'
-import { Notice } from '../tools/Notice.js'
 import { open, typed } from './document.js'
 import type {
   PdfAnchor,
@@ -13,7 +12,7 @@ import type {
   PdfSource,
 } from './index.js'
 import { toView } from './marks.js'
-import { PageView, type View } from './page.js'
+import { Failed, PageView, pageName, type View } from './page.js'
 import { quadsOn, resolve } from './resolve.js'
 
 type Props = {
@@ -123,10 +122,6 @@ export function PdfPage({
       ?.scrollIntoView({ block: 'nearest' })
   }, [view])
 
-  const printed =
-    loaded?.printed && loaded.printed !== String(page)
-      ? `, printed page ${loaded.printed}`
-      : ''
   return (
     <div
       ref={host}
@@ -134,17 +129,12 @@ export function PdfPage({
       aria-busy={!loaded && !error}
     >
       {error ? (
-        <Notice title="This PDF could not be shown.">
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setError(undefined)
-              setAttempt((n) => n + 1)
-            }}
-          >
-            Retry
-          </Button>
-        </Notice>
+        <Failed
+          onRetry={() => {
+            setError(undefined)
+            setAttempt((n) => n + 1)
+          }}
+        />
       ) : (
         <>
           <div id={id}>
@@ -152,7 +142,9 @@ export function PdfPage({
               view={view}
               cropped={cropped}
               name={
-                cropped ? (label ?? `Page ${page}`) : `Page ${page}${printed}`
+                cropped
+                  ? (label ?? `Page ${page}`)
+                  : pageName(page, loaded?.printed)
               }
               marks={drawn}
               current={current}
