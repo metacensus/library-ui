@@ -1,6 +1,6 @@
-import type { PDFPageProxy } from 'pdfjs-dist'
+import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist'
 import type { TextItem, TextStyle } from 'pdfjs-dist/types/src/display/api'
-import { round } from './anchor.js'
+import { round, type Quad } from './anchor.js'
 
 /** One text run as pdf.js extracts it, at `start` in its page's text. */
 export type Run = {
@@ -16,7 +16,7 @@ export type Run = {
 /** A page's text, a line break after each line, and the runs it is made of. */
 export type PageText = { text: string; runs: Run[] }
 
-export async function pageText(page: PDFPageProxy): Promise<PageText> {
+async function pageText(page: PDFPageProxy): Promise<PageText> {
   const { items, styles } = await page.getTextContent()
   let text = ''
   const runs: Run[] = []
@@ -33,6 +33,17 @@ export async function pageText(page: PDFPageProxy): Promise<PageText> {
     text += item.str + (item.hasEOL ? '\n' : '')
   }
   return { text, runs }
+}
+
+/** `document`'s page texts, each read once. */
+export function pageTexts(
+  document: PDFDocumentProxy,
+): (page: number) => Promise<PageText> {
+  const texts = new Map<number, Promise<PageText>>()
+  return (page) => {
+    if (!texts.has(page)) texts.set(page, document.getPage(page).then(pageText))
+    return texts.get(page)!
+  }
 }
 
 function quadOf({ transform, width }: TextItem, style: TextStyle): number[] {
@@ -67,6 +78,14 @@ export function slice(run: Run, from: number, to: number): number[] {
     round,
   )
 }
+
+/** A quad per run, of its part from `start` to `end` in the text it lies in. */
+export const quadsBetween = (runs: Run[], start: number, end: number): Quad[] =>
+  runs.flatMap((run) => {
+    const from = Math.max(0, start - run.start)
+    const to = Math.min(run.str.length, end - run.start)
+    return to > from ? [{ page: run.page, points: slice(run, from, to) }] : []
+  })
 
 const graphemes = new Intl.Segmenter()
 const lineEnd = /[^\S\n]*(?:\n|$)/y

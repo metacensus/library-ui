@@ -21,6 +21,7 @@ import {
   type View,
 } from './page.js'
 import { quadsOn } from './resolve.js'
+import { useSelect } from './select.js'
 
 type Props = {
   source: PdfSource
@@ -37,6 +38,9 @@ type Props = {
   /** Makes marks buttons. */
   onMarkActivate?: (id: string) => void
   onPageClick?: (point: PdfPoint) => void
+  /** A text selection with both ends in this component, once ended, as an
+   *  anchor; null once it is gone. */
+  onSelect?: (anchor: PdfAnchor | null) => void
   onError?: (error: PdfError) => void
   className?: string
 }
@@ -61,10 +65,11 @@ export function PdfPage({
   onResolve,
   onMarkActivate,
   onPageClick,
+  onSelect,
   onError,
   className,
 }: Props) {
-  const host = useRef<HTMLDivElement>(null)
+  const [host, setHost] = useState<HTMLDivElement | null>(null)
   const id = useId()
   const [width, setWidth] = useState(0)
   const [loaded, setLoaded] = useState<Loaded>()
@@ -75,12 +80,13 @@ export function PdfPage({
   const failOpen = (error: unknown) => loaded?.live() && fail(error)
 
   useEffect(() => {
+    if (!host) return
     const observer = new ResizeObserver(([entry]) =>
       setWidth(entry!.contentRect.width),
     )
-    observer.observe(host.current!)
+    observer.observe(host)
     return () => observer.disconnect()
-  }, [])
+  }, [host])
 
   // Callers pass new objects each render, so effects key on their contents.
   const file = 'url' in source ? source.url : source.data
@@ -111,6 +117,7 @@ export function PdfPage({
   }, [file, source.sha256, page, attempt])
 
   const drawn = useDrawn(marks, loaded, onResolve, fail)
+  useSelect(host, loaded, onSelect, fail)
   const shown = crop && !expanded ? quadsOn(crop, page) : []
   const cropped = shown.length > 0
   const view = useMemo(
@@ -121,14 +128,12 @@ export function PdfPage({
   useEffect(() => {
     if (!toggled.current || !view) return
     toggled.current = false
-    host
-      .current!.querySelector('.mc-pdf-mark')
-      ?.scrollIntoView({ block: 'nearest' })
+    host!.querySelector('.mc-pdf-mark')?.scrollIntoView({ block: 'nearest' })
   }, [view])
 
   return (
     <div
-      ref={host}
+      ref={setHost}
       className={cn('mc-pdf-page', className)}
       aria-busy={!loaded && !error}
     >

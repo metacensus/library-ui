@@ -7,6 +7,7 @@ import type { PdfError, PdfMark, PdfPoint, PdfResolution } from './index.js'
 import { hit, Marks, place } from './marks.js'
 import { enqueue, watch } from './queue.js'
 import { resolve } from './resolve.js'
+import { inSelection } from './select.js'
 
 /** What a page shows: `viewport` drawn into `width` by `height` CSS px. */
 export type View = {
@@ -109,6 +110,9 @@ export function PageView({
   const canvas = useRef<HTMLCanvasElement>(null)
   const text = useRef<HTMLDivElement>(null)
   const [near, setNear] = useState(false)
+  // Drawing the text layer drops a selection in it, so one kept for a
+  // selection is drawn again only for a new view.
+  const textFor = useRef<View>()
   const placed = useMemo(
     () => (view ? place(marks, view.page.pageNumber, view.viewport) : []),
     [marks, view],
@@ -118,13 +122,19 @@ export function PageView({
 
   useEffect(() => {
     if (!near || !view) return
-    const layer = cropped ? undefined : text.current!
+    const layer =
+      cropped || textFor.current === view ? undefined : text.current!
     return enqueue(
       frame.current!,
       (signal) =>
-        draw(view, canvas.current!, layer, signal).catch((error) => {
-          if (!signal.aborted) onError(error)
-        }),
+        draw(view, canvas.current!, layer, signal).then(
+          () => {
+            if (layer && !signal.aborted) textFor.current = view
+          },
+          (error) => {
+            if (!signal.aborted) onError(error)
+          },
+        ),
       root,
     )
   }, [near, view, cropped, root])
@@ -132,8 +142,16 @@ export function PageView({
   useEffect(() => {
     if (near) return
     canvas.current!.width = 0
-    text.current?.replaceChildren()
     view?.page.cleanup()
+    const release = () => {
+      if (inSelection(text.current)) return
+      document.removeEventListener('selectionchange', release)
+      text.current?.replaceChildren()
+      textFor.current = undefined
+    }
+    document.addEventListener('selectionchange', release)
+    release()
+    return () => document.removeEventListener('selectionchange', release)
   }, [near, view])
 
   useEffect(() => {
@@ -214,6 +232,7 @@ async function draw(
       const { TextLayer } = await import('pdfjs-dist')
       if (signal.aborted) return
       layer.className = 'mc-pdf-text'
+      layer.dataset.page = String(page.pageNumber)
       layer.style.setProperty(
         '--total-scale-factor',
         String(viewport.scale * viewport.userUnit),

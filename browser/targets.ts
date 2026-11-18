@@ -1,9 +1,11 @@
 // The corpus is written when the harness server starts, after tests are listed,
 // so each test reads it as it runs.
+import Ajv2020 from 'ajv/dist/2020.js'
 import { createHash } from 'node:crypto'
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { PDFDocument, PDFNumber, PDFName } from 'pdf-lib'
+import type { Quad } from '../src/pdf/anchor.js'
 
 type Box = { left: number; top: number; right: number; bottom: number }
 type Target = { page: number; points: number[]; text: string; screen: Box }
@@ -55,12 +57,40 @@ export const anchor = (sha256: string, page: number, ...quads: number[][]) => ({
   ],
 })
 
+/** The corpus's font size over 4, in pt. */
+export const quarterEm = 24 / 4
+
 export const off = (a: Box, b: Box) =>
   Math.max(
     ...(['left', 'top', 'right', 'bottom'] as const).map((edge) =>
       Math.abs(a[edge] - b[edge]),
     ),
   )
+
+/** How far apart, in pt, the bounds of two sets of quads lie at most. */
+export function quadsOff(a: Quad[], b: Quad[]) {
+  const bounds = (quads: Quad[]): Box => {
+    const xs = quads.flatMap(({ points }) => points.filter((_, i) => !(i % 2)))
+    const ys = quads.flatMap(({ points }) => points.filter((_, i) => i % 2))
+    return {
+      left: Math.min(...xs),
+      top: Math.min(...ys),
+      right: Math.max(...xs),
+      bottom: Math.max(...ys),
+    }
+  }
+  return off(bounds(a), bounds(b))
+}
+
+/** Whether an anchor passes `anchor.schema.json`; its `errors` say why not. */
+export const valid = new Ajv2020().compile(
+  JSON.parse(
+    readFileSync(
+      join(import.meta.dirname, '../src/pdf/anchor.schema.json'),
+      'utf8',
+    ),
+  ),
+)
 
 export const grow = ({ left, top, right, bottom }: Box, by: number): Box => ({
   left: left - by,

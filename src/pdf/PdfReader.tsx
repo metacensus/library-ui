@@ -23,6 +23,7 @@ import { Failed, PageView, pageName, useAttempt, useDrawn } from './page.js'
 import { watch } from './queue.js'
 import { quadsOn } from './resolve.js'
 import { pageAt, placeOf, restore, type Place } from './scroll.js'
+import { useSelect } from './select.js'
 import { Toolbar, within } from './toolbar.js'
 
 type Props = Omit<
@@ -62,6 +63,7 @@ export function PdfReader({
   onResolve,
   onMarkActivate,
   onPageClick,
+  onSelect,
   onError,
   className,
 }: Props) {
@@ -126,6 +128,7 @@ export function PdfReader({
   }, [loaded])
 
   const drawn = useDrawn(marks, loaded, onResolve, fail)
+  useSelect(box, loaded, onSelect, fail)
 
   const now = useRef({ zoom, scale: 0 })
   // A pinch or ctrl+wheel in progress: the pages wear a transform until the
