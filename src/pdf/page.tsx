@@ -1,26 +1,21 @@
 import type { PageViewport, PDFPageProxy } from 'pdfjs-dist'
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-  type MouseEvent,
-} from 'react'
-import { typed } from './document.js'
-import type { PdfError, PdfMark, PdfPoint } from './index.js'
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
+import type { PdfMark, PdfPoint } from './index.js'
 import { hit, Marks, place } from './marks.js'
 import { enqueue, watch } from './queue.js'
 
 /** What a page shows: `viewport` drawn into `width` by `height` CSS px. */
-export type View = { viewport: PageViewport; width: number; height: number }
+export type View = {
+  page: PDFPageProxy
+  viewport: PageViewport
+  width: number
+  height: number
+}
 
 /** The iOS limit on one canvas; past it a page renders softer. */
 const maxPixels = 16_777_216
 
-/** One page: canvas, the text layer unless cropped, and marks, under one viewport. */
 export function PageView({
-  page,
   view,
   cropped,
   name,
@@ -30,7 +25,6 @@ export function PageView({
   onPageClick,
   onError,
 }: {
-  page?: PDFPageProxy
   view?: View
   cropped: boolean
   name: string
@@ -38,44 +32,51 @@ export function PageView({
   current?: string
   onMarkActivate?: (id: string) => void
   onPageClick?: (point: PdfPoint) => void
-  onError: (error: PdfError) => void
+  onError: (error: unknown) => void
 }) {
   const frame = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   const text = useRef<HTMLDivElement>(null)
   const [near, setNear] = useState(false)
   const placed = useMemo(
-    () => (page && view ? place(marks, page.pageNumber, view.viewport) : []),
-    [marks, page, view],
+    () => (view ? place(marks, view.page.pageNumber, view.viewport) : []),
+    [marks, view],
   )
 
   useEffect(() => watch(frame.current!, setNear), [])
 
   useEffect(() => {
-    if (!near || !page || !view) return
+    if (!near || !view) return
     const layer = cropped ? undefined : text.current!
     return enqueue(frame.current!, (signal) =>
-      draw(page, view, canvas.current!, layer, signal).catch((error) => {
-        if (!signal.aborted) onError(typed(error))
+      draw(view, canvas.current!, layer, signal).catch((error) => {
+        if (!signal.aborted) onError(error)
       }),
     )
-  }, [near, page, view, cropped])
+  }, [near, view, cropped])
 
   useEffect(() => {
     if (near) return
     canvas.current!.width = 0
     text.current?.replaceChildren()
-    page?.cleanup()
-  }, [near, page])
+    view?.page.cleanup()
+  }, [near, view])
+
+  useEffect(() => {
+    const shown = canvas.current!
+    return () => {
+      shown.width = 0
+    }
+  }, [])
 
   const click = (event: MouseEvent<HTMLDivElement>) => {
-    if (!view || !page || !getSelection()?.isCollapsed) return
+    if (!view || !getSelection()?.isCollapsed) return
     const { left, top } = event.currentTarget.getBoundingClientRect()
     const point: [number, number] = [event.clientX - left, event.clientY - top]
     const under = hit(placed, point)
     if (under) return onMarkActivate?.(under.mark.id)
     const [x, y] = view.viewport.convertToPdfPoint(...point) as [number, number]
-    onPageClick?.({ page: page.pageNumber, x, y })
+    onPageClick?.({ page: view.page.pageNumber, x, y })
   }
 
   const size = view && { width: view.width, height: view.height }
@@ -97,19 +98,7 @@ export function PageView({
         height={0}
         style={size}
       />
-      {!cropped && (
-        <div
-          ref={text}
-          className="mc-pdf-text"
-          style={
-            view &&
-            ({
-              '--total-scale-factor':
-                view.viewport.scale * view.viewport.userUnit,
-            } as CSSProperties)
-          }
-        />
-      )}
+      {!cropped && <div ref={text} />}
       {view && (
         <Marks
           placed={placed}
@@ -123,9 +112,10 @@ export function PageView({
   )
 }
 
+// Both layers are built detached and swapped in at once, so the page shown
+// stays until its replacement is ready.
 async function draw(
-  page: PDFPageProxy,
-  { viewport, width, height }: View,
+  { page, viewport, width, height }: View,
   canvas: HTMLCanvasElement,
   text: HTMLElement | undefined,
   signal: AbortSignal,
@@ -134,23 +124,40 @@ async function draw(
     devicePixelRatio,
     Math.sqrt(maxPixels / (width * height)),
   )
-  canvas.width = Math.round(width * scale)
-  canvas.height = Math.round(height * scale)
-  const task = page.render({
-    canvas,
-    viewport,
-    transform: [scale, 0, 0, scale, 0, 0],
-  })
-  signal.addEventListener('abort', () => task.cancel())
-  await task.promise
-  if (!text || signal.aborted) return
-  const { TextLayer } = await import('pdfjs-dist')
-  text.replaceChildren()
-  const layer = new TextLayer({
-    textContentSource: page.streamTextContent(),
-    container: text,
-    viewport,
-  })
-  signal.addEventListener('abort', () => layer.cancel())
-  await layer.render()
+  const raster = document.createElement('canvas')
+  raster.width = Math.round(width * scale)
+  raster.height = Math.round(height * scale)
+  try {
+    const task = page.render({
+      canvas: raster,
+      viewport,
+      transform: [scale, 0, 0, scale, 0, 0],
+    })
+    signal.addEventListener('abort', () => task.cancel())
+    await task.promise
+    const layer = text && document.createElement('div')
+    if (layer) {
+      const { TextLayer } = await import('pdfjs-dist')
+      if (signal.aborted) return
+      layer.className = 'mc-pdf-text'
+      layer.style.setProperty(
+        '--total-scale-factor',
+        String(viewport.scale * viewport.userUnit),
+      )
+      const built = new TextLayer({
+        textContentSource: page.streamTextContent(),
+        container: layer,
+        viewport,
+      })
+      signal.addEventListener('abort', () => built.cancel())
+      await built.render()
+    }
+    if (signal.aborted) return
+    canvas.width = raster.width
+    canvas.height = raster.height
+    canvas.getContext('2d')!.drawImage(raster, 0, 0)
+    if (layer) text!.replaceChildren(layer)
+  } finally {
+    raster.width = 0
+  }
 }

@@ -5,7 +5,7 @@ import { quadsOn } from './resolve.js'
 
 type Point = [x: number, y: number]
 
-/** Every quad reaches the screen through this: user space to CSS px. */
+/** User space to CSS px. */
 export const toView = (viewport: PageViewport, points: number[]): Point[] =>
   [0, 2, 4, 6].map(
     (i) => viewport.convertToViewportPoint(points[i]!, points[i + 1]!) as Point,
@@ -17,10 +17,10 @@ type Frame = { along: Point; down: Point }
 /** Bounds in a frame: `start` to `end` along, `top` to `bottom` down. */
 type Box = { start: number; end: number; top: number; bottom: number }
 
-/** A mark as drawn: its paths, the boxes a click hits, its labels' corners. */
-export type Placed = {
+type Placed = {
   mark: PdfMark
   frame: Frame
+  first: Box
   hits: Box[]
   shape: string
   ring: string
@@ -61,6 +61,7 @@ export function place(
         {
           mark,
           frame,
+          first: lines[0]!,
           hits,
           shape,
           ring: outline(
@@ -73,10 +74,11 @@ export function place(
         },
       ]
     })
-    .sort((a, b) => a.badge[1] - b.badge[1] || a.badge[0] - b.badge[0])
+    .sort(({ first: a }, { first: b }) =>
+      level(a, b) ? a.start - b.start : a.top - b.top,
+    )
 }
 
-/** A look's path, and the boxes a click on it hits. */
 function draw(
   look: keyof typeof pad,
   frame: Frame,
@@ -214,7 +216,7 @@ export function Marks({
 }
 
 const tint = (color?: string) =>
-  color ? ({ '--mc-pdf-color': color } as CSSProperties) : undefined
+  color ? ({ '--mc-pdf-mark': color } as CSSProperties) : undefined
 
 const project = ({ along, down }: Frame, [x, y]: Point): Point => [
   x * along[0] + y * along[1],
@@ -251,15 +253,13 @@ const corners = ({ start, end, top, bottom }: Box): Point[] => [
   [start, bottom],
 ]
 
-// Quads on one line overlap down by half the shorter, and lie less than its
-// height apart along.
-const oneLine = (a: Box, b: Box) => {
-  const height = Math.min(a.bottom - a.top, b.bottom - b.top)
-  return (
-    Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) >= height / 2 &&
-    Math.max(b.start - a.end, a.start - b.end) < height
-  )
-}
+const shorter = (a: Box, b: Box) => Math.min(a.bottom - a.top, b.bottom - b.top)
+
+const level = (a: Box, b: Box) =>
+  Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) >= shorter(a, b) / 2
+
+const oneLine = (a: Box, b: Box) =>
+  level(a, b) && Math.max(b.start - a.end, a.start - b.end) < shorter(a, b)
 
 const join = (boxes: Box[]): Box[] =>
   boxes.reduce<Box[]>((lines, box) => {

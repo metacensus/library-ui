@@ -562,6 +562,58 @@ test('marks are reached by Tab, moved by arrows in reading order, and activated 
   ])
 })
 
+test('reading order holds across looks on one line', async ({ page }) => {
+  const t = (await targets()).find(({ text }) => text === 'turned0')!
+  const [x0, y0, x1, y1] = [
+    t.points[0]!,
+    t.points[1]!,
+    t.points[2]!,
+    t.points[5]!,
+  ]
+  const middle = (x0 + x1) / 2
+  // The right half sits a fraction of a point higher, as another run's quad can.
+  const half = (
+    id: string,
+    look: 'fill' | 'outline',
+    [l, r]: number[],
+    up: number,
+  ) => ({
+    id,
+    label: id,
+    look,
+    anchor: anchor(t.sha256, 1, [
+      l!,
+      y0 + up,
+      r!,
+      y0 + up,
+      r!,
+      y1 + up,
+      l!,
+      y1 + up,
+    ]),
+  })
+  await mount(
+    page,
+    [
+      {
+        ...t,
+        marks: [
+          half('right', 'outline', [middle, x1], 0.3),
+          half('left', 'fill', [x0, middle], 0),
+        ],
+      },
+    ],
+    600,
+  )
+  await marksDrawn(page, 2)
+  await page.keyboard.press('Tab')
+  const focused = () =>
+    page.evaluate(() => (document.activeElement as SVGElement).dataset.mark)
+  expect(await focused()).toBe('left')
+  await page.keyboard.press('ArrowRight')
+  expect(await focused()).toBe('right')
+})
+
 test('a click off the marks reports its point in user space', async ({
   page,
 }) => {

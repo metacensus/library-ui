@@ -20,14 +20,13 @@
     display: block;
   }
 
-  /* Marks: drawn in CSS px, so their gap off the glyphs holds at every zoom. */
   .mc-pdf-marks {
     position: absolute;
     inset: 0;
     pointer-events: none;
   }
   .mc-pdf-mark {
-    color: var(--mc-pdf-color, var(--mc-pdf-mark));
+    color: var(--mc-pdf-mark);
     outline: none;
   }
   .mc-pdf-shape {
@@ -44,8 +43,7 @@
   .mc-pdf-fill[aria-current] .mc-pdf-shape {
     fill-opacity: 0.5;
   }
-  .mc-pdf-outline[aria-current] .mc-pdf-shape,
-  .mc-pdf-dashed[aria-current] .mc-pdf-shape {
+  .mc-pdf-mark[aria-current] .mc-pdf-shape {
     stroke-width: 3px;
   }
   .mc-pdf-dashed .mc-pdf-shape {
@@ -72,7 +70,7 @@
     position: absolute;
     transform-origin: 0 0;
     padding: 0 0.25em;
-    border: 1px solid var(--mc-pdf-color, var(--mc-pdf-mark));
+    border: 1px solid var(--mc-pdf-mark);
     border-radius: 3px;
     background: var(--mc-card);
     color: var(--mc-ink);
@@ -93,14 +91,30 @@
     .mc-pdf-fill .mc-pdf-shape {
       fill: none;
       stroke: Highlight;
-      stroke-width: 2px;
       mix-blend-mode: normal;
     }
   }
 
-  /* The text layer pdf.js lays out: transparent text over the canvas, for
-     selection and reading. Adapted from pdfjs-dist/web/pdf_viewer.css,
-     Copyright 2014 Mozilla Foundation, Apache-2.0. */
+  /*! The text layer pdf.js lays out: transparent text over the canvas, for
+   * selection and reading. From pdfjs-dist/web/pdf_viewer.css.
+   *
+   * Copyright 2014 Mozilla Foundation
+   *
+   * Licensed under the Apache License, Version 2.0 (the "License");
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *     http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an "AS IS" BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   *
+   * Modified: `.textLayer` renamed `.mc-pdf-text`, and the rules it does not
+   * use removed.
+   */
   .mc-pdf-text {
     --scale-round-x: 1px;
     --scale-round-y: 1px;

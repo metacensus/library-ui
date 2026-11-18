@@ -149,7 +149,6 @@ export function PdfPage({
         <>
           <div id={id}>
             <PageView
-              page={loaded?.page}
               view={view}
               cropped={cropped}
               name={
@@ -184,8 +183,6 @@ export function PdfPage({
 const margin = 30
 const maxScale = 2
 
-/** `quads` plus the margin, else the whole page, at `width` CSS px and at
- *  most `maxScale` per pt. */
 function fit(page: PDFPageProxy, width: number, quads: number[][]): View {
   const whole = page.getViewport({ scale: 1 })
   const [left, top, right, bottom] = quads.length
@@ -193,6 +190,7 @@ function fit(page: PDFPageProxy, width: number, quads: number[][]): View {
     : [0, 0, whole.width, whole.height]
   const scale = Math.min(maxScale, width / (right - left))
   return {
+    page,
     viewport: page.getViewport({
       scale,
       offsetX: -left * scale,
@@ -203,7 +201,6 @@ function fit(page: PDFPageProxy, width: number, quads: number[][]): View {
   }
 }
 
-/** The quads' bounds plus the margin, clipped to the page, on `whole`. */
 function around(
   page: PDFPageProxy,
   whole: PageViewport,

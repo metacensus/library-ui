@@ -60,7 +60,6 @@ export function watch(
   }
 }
 
-// Inside its margin, the near observer sets near; outside, the far one clears it.
 function observer(margin: string, near: boolean) {
   return new IntersectionObserver(
     (entries) => {
