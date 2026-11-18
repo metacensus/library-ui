@@ -493,6 +493,97 @@ test('a scroll drops a mark jump still waiting for its page', async ({
   expect((await top(page)).page).toBe(20)
 })
 
+test('one tab stop covers every page, and arrows cross pages in reading order', async ({
+  page,
+}) => {
+  // Pages 100 and 1000 each hold two marks, given right half first.
+  const halves = (t: Awaited<ReturnType<typeof targets>>[number]) => {
+    const [x0, y0, x1, y1] = [
+      t.points[0]!,
+      t.points[1]!,
+      t.points[2]!,
+      t.points[5]!,
+    ]
+    const middle = (x0 + x1) / 2
+    return (
+      [
+        ['b', middle, x1],
+        ['a', x0, middle],
+      ] as const
+    ).map(([half, l, r]) => ({
+      id: `${t.text}${half}`,
+      label: `page ${t.text}${half}`,
+      anchor: anchor(t.sha256, t.page, [l, y0, r, y0, r, y1, l, y1]),
+    }))
+  }
+  const marks = (await targets())
+    .filter(({ url }) => url === thousand.url)
+    .flatMap((t) =>
+      ['100', '1000'].includes(t.text)
+        ? halves(t)
+        : [
+            {
+              id: t.text,
+              label: `page ${t.text}`,
+              anchor: anchor(t.sha256, t.page, t.points),
+            },
+          ],
+    )
+  // Mark 1 runs on onto page 2, where it is drawn again but is no stop.
+  const one = marks.find(({ id }) => id === '1')!.anchor.selector[0]!
+  one.quads.push({ ...one.quads[0]!, page: 2 })
+  await show(page, { ...thousand, marks })
+  await expect(page.locator('[data-mark="1"]')).toHaveCount(2)
+  const focused = () =>
+    page.evaluate(() => (document.activeElement as HTMLElement).dataset.mark)
+  const stops = page.locator('.mc-pdf-mark[tabindex="0"]')
+  const tabIn = async () => {
+    await page.locator('.mc-pdf-scroll').focus()
+    await page.keyboard.press('Tab')
+  }
+
+  await tabIn()
+  expect(await focused()).toBe('1')
+  await expect(stops).toHaveCount(1)
+  await page.keyboard.press('Tab')
+  expect(
+    await page.evaluate(() =>
+      document.activeElement!.closest('.mc-pdf-reader'),
+    ),
+  ).toBeNull()
+
+  await tabIn()
+  for (const [key, id] of [
+    ['ArrowRight', '100a'],
+    ['ArrowDown', '100b'],
+    ['ArrowRight', '200'],
+    ['End', '1000b'],
+    ['ArrowLeft', '1000a'],
+    ['ArrowUp', '900'],
+    ['Home', '1'],
+    ['ArrowRight', '100a'],
+  ]) {
+    await page.keyboard.press(key!)
+    await expect.poll(focused, key).toBe(id)
+    await expect(page.locator(':focus'), key).toBeInViewport()
+    await expect(stops).toHaveCount(1)
+  }
+
+  await scrollTo(page, 300, 0.5)
+  await expect
+    .poll(() =>
+      page
+        .getByRole('region', { name: 'Page 100', exact: true })
+        .locator('canvas')
+        .evaluate((canvas: HTMLCanvasElement) => canvas.width),
+    )
+    .toBe(0)
+  await tabIn()
+  expect(await focused()).toBe('100a')
+  await expect(page.locator(':focus')).toBeInViewport()
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+})
+
 test('pages more than 3 screens away release their canvases', async ({
   page,
 }) => {

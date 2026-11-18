@@ -10,11 +10,17 @@ import {
 import { cn } from '../tools/cn.js'
 import { open } from './document.js'
 import type { PdfMark, PdfTarget } from './index.js'
-import { toView } from './marks.js'
+import {
+  firstPage,
+  ReaderRoving,
+  readingOrder,
+  step,
+  toView,
+  type Roving,
+} from './marks.js'
 import type { PdfPage } from './PdfPage.js'
 import { Failed, PageView, pageName, useAttempt, useDrawn } from './page.js'
 import { watch } from './queue.js'
-import { quadsOf } from './anchor.js'
 import { quadsOn } from './resolve.js'
 import { pageAt, placeOf, restore, type Place } from './scroll.js'
 import { Toolbar, within } from './toolbar.js'
@@ -203,6 +209,9 @@ export function PdfReader({
     setShown(pageAt(box, box.clientHeight / 2))
   }, [box, scale, fetched, goal])
 
+  // After the effect above, so a mark's focus scrolls from the restored place.
+  const roving = useRoving(drawn, fetched, current, box, go)
+
   const scrolled = () => {
     if (!box || !scale || gesture.current) return
     follow()
@@ -320,23 +329,25 @@ export function PdfReader({
                 className="mc-pdf-pages"
                 style={{ padding: gap, gap }}
               >
-                {Array.from({ length: pages }, (_, i) => (
-                  <Slot
-                    key={i}
-                    page={i + 1}
-                    fetched={fetched[i + 1]}
-                    base={base}
-                    scale={scale}
-                    fetch={fetch}
-                    root={box}
-                    name={pageName(i + 1, loaded!.labels?.[i])}
-                    marks={drawn ?? []}
-                    current={current}
-                    onMarkActivate={onMarkActivate}
-                    onPageClick={onPageClick}
-                    onError={failOpen}
-                  />
-                ))}
+                <ReaderRoving.Provider value={roving}>
+                  {Array.from({ length: pages }, (_, i) => (
+                    <Slot
+                      key={i}
+                      page={i + 1}
+                      fetched={fetched[i + 1]}
+                      base={base}
+                      scale={scale}
+                      fetch={fetch}
+                      root={box}
+                      name={pageName(i + 1, loaded!.labels?.[i])}
+                      marks={drawn ?? []}
+                      current={current}
+                      onMarkActivate={onMarkActivate}
+                      onPageClick={onPageClick}
+                      onError={failOpen}
+                    />
+                  ))}
+                </ReaderRoving.Provider>
               </div>
             )}
           </div>
@@ -349,9 +360,51 @@ export function PdfReader({
   )
 }
 
-const firstPage = (mark?: PdfMark) => {
-  const pages = mark && quadsOf(mark.anchor).map(({ page }) => page)
-  return pages?.length ? Math.min(...pages) : undefined
+/** One tab stop over every page's marks, kept on a fetched page, since only
+ *  those are in the DOM. A move onto a page not yet fetched goes there first. */
+function useRoving(
+  marks: PdfMark[] | undefined,
+  fetched: Record<number, PDFPageProxy>,
+  current: string | undefined,
+  box: Element | null,
+  go: (page: number) => void,
+): Roving {
+  const [focused, setFocused] = useState<string>()
+  const [seek, setSeek] = useState<number>()
+  const order = useMemo(
+    () => readingOrder(marks ?? [], fetched),
+    [marks, fetched],
+  )
+  const stop = [focused, current]
+    .map((id) => order.find((mark) => mark.id === id))
+    .concat(order)
+    .find((mark) => mark && fetched[mark.page])
+
+  useLayoutEffect(() => {
+    const to = seek === undefined ? undefined : order[seek]
+    if (!box || !to || !fetched[to.page]) return
+    setSeek(undefined)
+    const slot = box.querySelectorAll('.mc-pdf-slot')[to.page - 1]!
+    slot
+      .querySelector<SVGGElement>(`[data-mark="${CSS.escape(to.id)}"]`)!
+      .focus()
+  }, [box, seek, order])
+
+  return {
+    isStop: (id, page) => id === stop?.id && page === stop.page,
+    focused: setFocused,
+    move: (from, key) => {
+      const to = step(
+        key,
+        order.findIndex(({ id }) => id === from),
+        order.length,
+      )
+      if (to === undefined) return false
+      if (!fetched[order[to]!.page]) go(order[to]!.page)
+      setSeek(to)
+      return true
+    },
+  }
 }
 
 /** Where the view goes for `goal`: a mark's centre to the view's, once its

@@ -1,5 +1,14 @@
-import type { PageViewport } from 'pdfjs-dist'
-import { useState, type CSSProperties, type KeyboardEvent } from 'react'
+import type { PageViewport, PDFPageProxy } from 'pdfjs-dist'
+import {
+  createContext,
+  useContext,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+  type RefObject,
+} from 'react'
+import { quadsOf } from './anchor.js'
 import type { PdfMark } from './index.js'
 import { quadsOn } from './resolve.js'
 
@@ -19,6 +28,7 @@ type Box = { start: number; end: number; top: number; bottom: number }
 
 type Placed = {
   mark: PdfMark
+  page: number
   frame: Frame
   first: Box
   hits: Box[]
@@ -60,6 +70,7 @@ export function place(
       return [
         {
           mark,
+          page,
           frame,
           first: lines[0]!,
           hits,
@@ -109,6 +120,77 @@ function draw(
   return { hits, shape: outline(frame, hits) }
 }
 
+export const firstPage = (mark?: PdfMark) => {
+  const pages = mark && quadsOf(mark.anchor).map(({ page }) => page)
+  return pages?.length ? Math.min(...pages) : undefined
+}
+
+/** Each mark once, on the first page it is on: by page, then as `place`
+ *  orders a page's marks once that page is fetched. */
+export function readingOrder(
+  marks: PdfMark[],
+  fetched: Record<number, PDFPageProxy>,
+): { id: string; page: number }[] {
+  const pages = new Map<number, PdfMark[]>()
+  for (const mark of marks) {
+    const page = firstPage(mark)
+    if (page) pages.set(page, [...(pages.get(page) ?? []), mark])
+  }
+  return [...pages]
+    .sort(([a], [b]) => a - b)
+    .flatMap(([page, here]) => {
+      const proxy = fetched[page]
+      const ordered = proxy
+        ? place(here, page, proxy.getViewport({ scale: 1 })).map(
+            ({ mark }) => mark,
+          )
+        : here
+      return ordered.map(({ id }) => ({ id, page }))
+    })
+}
+
+export type Roving = {
+  isStop: (id: string, page: number) => boolean
+  focused: (id: string) => void
+  /** Focuses the mark `key` moves to from `id`; false for a key that moves none. */
+  move: (id: string, key: string) => boolean
+}
+
+/** A reader's stop over every page's marks; absent, each page keeps its own. */
+export const ReaderRoving = createContext<Roving | undefined>(undefined)
+
+export function step(key: string, i: number, count: number) {
+  const to = {
+    ArrowRight: i + 1,
+    ArrowDown: i + 1,
+    ArrowLeft: i - 1,
+    ArrowUp: i - 1,
+    Home: 0,
+    End: count - 1,
+  }[key]
+  return to === undefined ? undefined : Math.max(0, Math.min(to, count - 1))
+}
+
+function usePageRoving(
+  placed: Placed[],
+  current: string | undefined,
+  svg: RefObject<SVGSVGElement | null>,
+): Roving {
+  const [focused, setFocused] = useState<string>()
+  const ids = placed.map(({ mark }) => mark.id)
+  const stop = [focused, current].find((id) => id && ids.includes(id)) ?? ids[0]
+  return {
+    isStop: (id) => id === stop,
+    focused: setFocused,
+    move: (from, key) => {
+      const to = step(key, ids.indexOf(from), ids.length)
+      if (to === undefined) return false
+      svg.current!.querySelectorAll<SVGGElement>('.mc-pdf-mark')[to]!.focus()
+      return true
+    },
+  }
+}
+
 /** The topmost mark under `point`, in CSS px. */
 export function hit(placed: Placed[], point: Point): Placed | undefined {
   return [...placed].reverse().find(({ frame, hits }) => {
@@ -132,45 +214,31 @@ export function Marks({
   current?: string
   onActivate?: (id: string) => void
 }) {
-  const [focused, setFocused] = useState<string>()
-  const ids = placed.map(({ mark }) => mark.id)
-  const stop = [focused, current].find((id) => id && ids.includes(id)) ?? ids[0]
+  const svg = useRef<SVGSVGElement>(null)
+  const own = usePageRoving(placed, current, svg)
+  const { isStop, focused, move } = useContext(ReaderRoving) ?? own
 
   const key = (event: KeyboardEvent<SVGSVGElement>) => {
-    const i = ids.indexOf((event.target as SVGElement).dataset.mark ?? '')
-    if (i < 0) return
-    const to = {
-      ArrowRight: i + 1,
-      ArrowDown: i + 1,
-      ArrowLeft: i - 1,
-      ArrowUp: i - 1,
-      Home: 0,
-      End: ids.length - 1,
-    }[event.key]
-    if (to !== undefined) {
+    const id = (event.target as SVGElement).dataset.mark!
+    if (move(id, event.key)) event.preventDefault()
+    else if (onActivate && (event.key === 'Enter' || event.key === ' ')) {
       event.preventDefault()
-      const marks =
-        event.currentTarget.querySelectorAll<SVGGElement>('.mc-pdf-mark')
-      marks[Math.max(0, Math.min(to, ids.length - 1))]!.focus()
-    } else if (onActivate && (event.key === 'Enter' || event.key === ' ')) {
-      event.preventDefault()
-      onActivate(ids[i]!)
+      onActivate(id)
     }
   }
 
   return (
     <>
       <svg
+        ref={svg}
         className="mc-pdf-marks"
         width={width}
         height={height}
         viewBox={`0 0 ${width} ${height}`}
         onKeyDown={key}
-        onFocus={(event) =>
-          setFocused((event.target as SVGElement).dataset.mark)
-        }
+        onFocus={(event) => focused((event.target as SVGElement).dataset.mark!)}
       >
-        {placed.map(({ mark, shape, ring }) => (
+        {placed.map(({ mark, page, shape, ring }) => (
           <g
             key={mark.id}
             data-mark={mark.id}
@@ -178,7 +246,7 @@ export function Marks({
             role={onActivate ? 'button' : 'img'}
             aria-label={mark.label}
             aria-current={mark.id === current || undefined}
-            tabIndex={mark.id === stop ? 0 : -1}
+            tabIndex={isStop(mark.id, page) ? 0 : -1}
             style={tint(mark.color)}
           >
             <path className="mc-pdf-ring" d={ring} />
