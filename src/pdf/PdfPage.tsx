@@ -46,6 +46,8 @@ type Loaded = {
   page: PDFPageProxy
   sha256: string
   printed?: string
+  /** False once released, when its renders end in errors that are no failure. */
+  live: () => boolean
 }
 
 /** One page of a PDF, cropped to a passage or whole, with marks on it. */
@@ -69,6 +71,8 @@ export function PdfPage({
   const { attempt, error, fail, retry } = useAttempt(onError)
   const [expanded, setExpanded] = useState(false)
   const toggled = useRef(false)
+
+  const failOpen = (error: unknown) => loaded?.live() && fail(error)
 
   useEffect(() => {
     const observer = new ResizeObserver(([entry]) =>
@@ -95,6 +99,7 @@ export function PdfPage({
             page: shown,
             sha256,
             printed: labels?.[page - 1],
+            live: () => live,
           })
       })
       .catch((error) => live && fail(error))
@@ -144,7 +149,7 @@ export function PdfPage({
               current={current}
               onMarkActivate={onMarkActivate}
               onPageClick={onPageClick}
-              onError={fail}
+              onError={failOpen}
             />
           </div>
           {crop && (
