@@ -66,6 +66,7 @@ In `.astro` files, pass `Header`'s `nav` and `actions` as named slots; JSX props
 
 - `<PdfPage source={…} page={12} crop={anchor} label="…" marks={[…]} />` draws one page, cropped to an anchor's quads plus 30 pt or whole, with marks that stay on their glyphs at every width and DPR. Import `@metacensus/library-ui/pdf.css` beside `tokens.css`.
 - `<PdfReader source={…} marks={[…]} target={{ mark: id }} jump={n} className="h-full" />` scrolls the whole document inside its frame, which sets its height: a toolbar, zoom from 50% to 400% of fit width, and the reader's place kept through zoom and resize. `target` scrolls on load, when it changes, and when `jump` does.
+- `onSelect` on either gives a text selection, once it ends, as a `PdfAnchor` to store, and `null` once it is gone.
 - A stored mark is a `PdfAnchor`, whose JSON Schema is `@metacensus/library-ui/pdf/anchor.schema.json`, and `quadFromRect` and `quadsFromFractions` convert user-space rects and fractions of the displayed page into its quads.
 - Serve `dist/pdf-assets/` (the worker, wasm, cmaps, standard fonts and the ICC profiles for CMYK pages) from your own origin, copied again on each upgrade since pdf.js refuses a worker of another version, and name its URL once per page with `configurePdf({ assets: '/pdfjs/' })`. The page's CSP needs `script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'`, and no `unsafe-eval`.
 

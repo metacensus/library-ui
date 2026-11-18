@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { quadsOf, type Quad, type Quote } from '../src/pdf/anchor.js'
 import type { PdfAnchor, PdfMark, PdfResolution } from '../src/pdf/index.js'
-import { corpus, sha256 } from './targets.js'
+import { corpus, quadsOff, quarterEm, sha256 } from './targets.js'
 
 type Target = Quad & { text: string }
 
@@ -14,8 +14,6 @@ declare global {
     asked?: number[]
   }
 }
-
-const quarterEm = 24 / 4
 
 function file(name: string) {
   const bytes = readFileSync(join(corpus, `${name}.pdf`))
@@ -74,21 +72,6 @@ async function resolveOn(
   return (await resolved.jsonValue()) as PdfResolution[]
 }
 
-/** How far apart, in pt, the bounds of two sets of quads lie at most. */
-function off(a: Quad[], b: Quad[]) {
-  const bounds = (quads: Quad[]) => {
-    const xs = quads.flatMap(({ points }) =>
-      points.filter((_, i) => i % 2 === 0),
-    )
-    const ys = quads.flatMap(({ points }) =>
-      points.filter((_, i) => i % 2 === 1),
-    )
-    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]
-  }
-  const [p, q] = [bounds(a), bounds(b)]
-  return Math.max(...p.map((v, i) => Math.abs(v - q[i]!)))
-}
-
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
 })
@@ -111,7 +94,7 @@ test('each target of edition 1 is reanchored on edition 2, within a quarter em o
     expect
       .soft(new Set(quads.map((q) => q.page)), text)
       .toEqual(new Set([truth.page]))
-    expect.soft(off(quads, [truth]), text).toBeLessThanOrEqual(quarterEm)
+    expect.soft(quadsOff(quads, [truth]), text).toBeLessThanOrEqual(quarterEm)
   })
   await expect(page.locator('.mc-pdf-mark')).toHaveCount(1)
   await expect(page.locator('[data-mark="m0"]')).toHaveCount(1)
@@ -156,10 +139,10 @@ test('a quote said twice on a page resolves by its prefix and suffix, else neare
   const listed = await resolve(
     quoted(first.sha256, said, { prefix: 'list ', suffix: ' again.' }),
   )
-  expect(off(listed, red)).toBeGreaterThan(4 * quarterEm)
+  expect(quadsOff(listed, red)).toBeGreaterThan(4 * quarterEm)
   const quote = { exact: said.text }
   expect(
-    off(
+    quadsOff(
       await resolve(
         anchor(first.sha256, listed, {
           ...quote,
@@ -173,10 +156,13 @@ test('a quote said twice on a page resolves by its prefix and suffix, else neare
 
   expect(await resolve(anchor(first.sha256, listed, quote))).toEqual(listed)
   expect(
-    off(await resolve(quoted(first.sha256, said, { prefix: 'Fact ' })), red),
+    quadsOff(
+      await resolve(quoted(first.sha256, said, { prefix: 'Fact ' })),
+      red,
+    ),
   ).toBeLessThanOrEqual(quarterEm)
   expect(
-    off(await resolve(quoted(first.sha256, said)), red),
+    quadsOff(await resolve(quoted(first.sha256, said)), red),
   ).toBeLessThanOrEqual(quarterEm)
 })
 

@@ -1,7 +1,14 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { quadsOf, type PdfAnchor, type Quad, type Quote } from './anchor.js'
 import type { PdfMark, PdfResolution } from './index.js'
-import { fold, pageText, slice, type PageText, type Run } from './text.js'
+import {
+  fold,
+  pageTexts,
+  quadsBetween,
+  slice,
+  type PageText,
+  type Run,
+} from './text.js'
 
 /**
  * Each mark on `document`: `exact` on the file its quads were measured on,
@@ -13,11 +20,7 @@ export async function resolve(
   document: PDFDocumentProxy,
   sha256: string,
 ): Promise<PdfResolution[]> {
-  const texts = new Map<number, Promise<PageText>>()
-  const text = (page: number) => {
-    if (!texts.has(page)) texts.set(page, document.getPage(page).then(pageText))
-    return texts.get(page)!
-  }
+  const text = pageTexts(document)
   return Promise.all(
     marks.map(async ({ id, anchor }): Promise<PdfResolution> => {
       if (anchor.source.sha256 === sha256) return { id, status: 'exact' }
@@ -115,13 +118,11 @@ function locate(
     })
     .sort((a, b) => b.context - a.context || nearer(a, b))
   if (!best) return
-  const start = spans[best.i]![0]
-  const end = spans[best.i + exact.length - 1]![1]
-  return runs.flatMap((run) => {
-    const from = Math.max(0, start - run.start)
-    const to = Math.min(run.str.length, end - run.start)
-    return to > from ? [{ page: run.page, points: slice(run, from, to) }] : []
-  })
+  return quadsBetween(
+    runs,
+    spans[best.i]![0],
+    spans[best.i + exact.length - 1]![1],
+  )
 }
 
 /** How many of the first `length` characters agree, when at least half do. */

@@ -21,6 +21,7 @@ import {
   type View,
 } from './page.js'
 import { quadsOn } from './resolve.js'
+import { useSelect } from './select.js'
 
 type Props = {
   source: PdfSource
@@ -37,6 +38,8 @@ type Props = {
   /** Makes marks buttons. */
   onMarkActivate?: (id: string) => void
   onPageClick?: (point: PdfPoint) => void
+  /** A text selection, once ended, as an anchor; null once it is gone. */
+  onSelect?: (anchor: PdfAnchor | null) => void
   onError?: (error: PdfError) => void
   className?: string
 }
@@ -61,6 +64,7 @@ export function PdfPage({
   onResolve,
   onMarkActivate,
   onPageClick,
+  onSelect,
   onError,
   className,
 }: Props) {
@@ -111,6 +115,7 @@ export function PdfPage({
   }, [file, source.sha256, page, attempt])
 
   const drawn = useDrawn(marks, loaded, onResolve, fail)
+  useSelect(host.current, loaded, onSelect, fail)
   const shown = crop && !expanded ? quadsOn(crop, page) : []
   const cropped = shown.length > 0
   const view = useMemo(

@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto'
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { PDFDocument, PDFNumber, PDFName } from 'pdf-lib'
+import type { Quad } from '../src/pdf/anchor.js'
 
 type Box = { left: number; top: number; right: number; bottom: number }
 type Target = { page: number; points: number[]; text: string; screen: Box }
@@ -54,6 +55,24 @@ export const anchor = (sha256: string, page: number, ...quads: number[][]) => ({
     },
   ],
 })
+
+/** The corpus's font size over 4, in pt. */
+export const quarterEm = 24 / 4
+
+/** How far apart, in pt, the bounds of two sets of quads lie at most. */
+export function quadsOff(a: Quad[], b: Quad[]) {
+  const bounds = (quads: Quad[]) => {
+    const xs = quads.flatMap(({ points }) =>
+      points.filter((_, i) => i % 2 === 0),
+    )
+    const ys = quads.flatMap(({ points }) =>
+      points.filter((_, i) => i % 2 === 1),
+    )
+    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]
+  }
+  const [p, q] = [bounds(a), bounds(b)]
+  return Math.max(...p.map((v, i) => Math.abs(v - q[i]!)))
+}
 
 export const off = (a: Box, b: Box) =>
   Math.max(
