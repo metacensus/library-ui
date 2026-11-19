@@ -151,7 +151,7 @@ export function PdfPage({
           <div id={id}>
             <PageView
               view={view}
-              cropped={cropped}
+              role={cropped ? 'img' : 'group'}
               name={
                 label ??
                 (cropped ? `Page ${page}` : pageName(page, loaded?.printed))

@@ -186,7 +186,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/')
 })
 
-test('a crop is an image named by its label, and expands to a page region with its text', async ({
+test('a crop is an image named by its label, and expands to a page group with its text', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 800, height: 300 })
@@ -218,9 +218,9 @@ test('a crop is an image named by its label, and expands to a page region with i
   await expect(toggle).toHaveAttribute('aria-expanded', 'true')
   await expect(page.locator('.mc-pdf-mark')).toBeInViewport()
 
-  const region = page.getByRole('region', { name: 'the word sized' })
-  await expect(region).toContainText('sized')
-  const selected = await region.evaluate((view) => {
+  const whole = page.getByRole('group', { name: 'the word sized' })
+  await expect(whole).toContainText('sized')
+  const selected = await whole.evaluate((view) => {
     getSelection()!.selectAllChildren(view.querySelector('.mc-pdf-text')!)
     return getSelection()!.toString()
   })
@@ -232,20 +232,20 @@ test('a crop is an image named by its label, and expands to a page region with i
   await expect(page.getByRole('img', { name: 'the word sized' })).toBeVisible()
 })
 
-test('two whole pages on one page number are regions named by their labels', async ({
+test('one whole page shown twice under one label is two groups named by it', async ({
   page,
 }) => {
   const t = (await targets()).find((t) => t.page === 2)!
   await mount(
     page,
     [
-      { ...t, label: 'first' },
-      { ...t, label: 'second' },
+      { ...t, label: 'the page' },
+      { ...t, label: 'the page' },
     ],
     600,
   )
-  for (const name of ['first', 'second'])
-    await expect(page.getByRole('region', { name })).toContainText(/\S/)
+  const groups = page.getByRole('group', { name: 'the page' })
+  await expect(groups).toHaveText([/\S/, /\S/])
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 })
 
@@ -559,7 +559,7 @@ test('a click off the marks reports its point in user space', async ({
     url.endsWith('rotate.pdf'),
   )) {
     await mount(page, [t], 400 + t.page)
-    const view = page.getByRole('region', { name: `Page ${t.page}` })
+    const view = page.getByRole('group', { name: `Page ${t.page}` })
     await expect(view).toHaveAttribute('style', /width/)
     const box = (await view.boundingBox())!
     const scale = box.width / t.width
@@ -711,7 +711,7 @@ test('a failed load shows a Notice whose Retry loads it, and tells onError once'
   fail = false
   await retry.click()
   await expect(
-    page.getByRole('region', { name: `Page ${t.page}` }),
+    page.getByRole('group', { name: `Page ${t.page}` }),
   ).toBeVisible()
   await expect(retry).toHaveCount(0)
 })

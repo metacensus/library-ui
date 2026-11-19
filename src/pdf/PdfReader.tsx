@@ -466,7 +466,7 @@ function Slot({
   fetch,
   root,
   ...shown
-}: Omit<ComponentProps<typeof PageView>, 'view' | 'cropped' | 'root'> & {
+}: Omit<ComponentProps<typeof PageView>, 'view' | 'role' | 'root'> & {
   page: number
   fetched?: PDFPageProxy
   base: PageViewport
@@ -499,7 +499,7 @@ function Slot({
       className="mc-pdf-slot"
       style={{ width: size.width, height: size.height }}
     >
-      {view && <PageView view={view} cropped={false} root={root} {...shown} />}
+      {view && <PageView view={view} role="region" root={root} {...shown} />}
     </div>
   )
 }
