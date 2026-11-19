@@ -18,9 +18,9 @@ import {
   pageName,
   useAttempt,
   useDrawn,
+  useNeared,
   type View,
 } from './page.js'
-import { watch } from './queue.js'
 import { quadsOn } from './resolve.js'
 import { useSelect } from './select.js'
 
@@ -73,7 +73,7 @@ export function PdfPage({
   const [host, setHost] = useState<HTMLDivElement | null>(null)
   const id = useId()
   const [width, setWidth] = useState(0)
-  const [reached, setReached] = useState(false)
+  const neared = useNeared(host)
   const [loaded, setLoaded] = useState<Loaded>()
   const { attempt, error, fail, retry } = useAttempt(onError)
   const [expanded, setExpanded] = useState(false)
@@ -90,14 +90,10 @@ export function PdfPage({
     return () => observer.disconnect()
   }, [host])
 
-  useEffect(() => {
-    if (host && !reached) return watch(host, (near) => near && setReached(true))
-  }, [host, reached])
-
   // Callers pass new objects each render, so effects key on their contents.
   const file = 'url' in source ? source.url : source.data
   useEffect(() => {
-    if (!reached) return
+    if (!neared) return
     const lease = open(source)
     let live = true
     Promise.all([lease.document, lease.sha256])
@@ -121,7 +117,7 @@ export function PdfPage({
       lease.release()
       setLoaded(undefined)
     }
-  }, [reached, file, source.sha256, page, attempt])
+  }, [neared, file, source.sha256, page, attempt])
 
   const drawn = useDrawn(marks, loaded, onResolve, fail)
   useSelect(host, loaded, onSelect, fail)

@@ -19,7 +19,14 @@ import {
   type Roving,
 } from './marks.js'
 import type { PdfPage } from './PdfPage.js'
-import { Failed, PageView, pageName, useAttempt, useDrawn } from './page.js'
+import {
+  Failed,
+  PageView,
+  pageName,
+  useAttempt,
+  useDrawn,
+  useNeared,
+} from './page.js'
 import { watch } from './queue.js'
 import { quadsOn } from './resolve.js'
 import { pageAt, placeOf, restore, type Place } from './scroll.js'
@@ -70,6 +77,7 @@ export function PdfReader({
   const [box, setBox] = useState<HTMLDivElement | null>(null)
   const sheet = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
+  const neared = useNeared(box)
   const [loaded, setLoaded] = useState<Loaded>()
   const { attempt, error, fail, retry } = useAttempt(onError)
   const [fetched, setFetched] = useState<Record<number, PDFPageProxy>>({})
@@ -88,6 +96,7 @@ export function PdfReader({
   // Callers pass new objects each render, so effects key on their contents.
   const file = 'url' in source ? source.url : source.data
   useEffect(() => {
+    if (!neared) return
     const lease = open(source)
     let live = true
     Promise.all([lease.document, lease.sha256])
@@ -108,7 +117,7 @@ export function PdfReader({
       setLoaded(undefined)
       setFetched({})
     }
-  }, [file, source.sha256, attempt])
+  }, [neared, file, source.sha256, attempt])
 
   // Page 1 comes with the document; the rest are fetched as they near the view.
   const fetch = useMemo(() => {
