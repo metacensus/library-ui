@@ -57,14 +57,10 @@ async function mount(page: Page, cards: Card[], width: number, above = 0) {
   await page.locator(`main[data-mount="${id}"]`).waitFor()
 }
 
-/** Scrolls a screen at a time, from the bottom back to the top, until `count`
- *  marks are drawn, since a page opens only once near the viewport. */
 const marksDrawn = (page: Page, count: number) =>
   page.waitForFunction((count) => {
-    if (document.querySelectorAll('.mc-pdf-mark').length === count) return true
-    const bottom = scrollY + innerHeight >= document.body.scrollHeight
-    scrollTo(0, bottom ? 0 : scrollY + innerHeight)
-    return false
+    document.querySelector('.mc-pdf-page[aria-busy="true"]')?.scrollIntoView()
+    return document.querySelectorAll('.mc-pdf-mark').length === count
   }, count)
 
 /** Each view's size, and its marks' shapes' bounds inside it. */
@@ -579,7 +575,6 @@ test('a page far from view imports pdf.js and fetches nothing until scrolled nea
   ].slice(0, 3)
   const asked: string[] = []
   page.on('request', (request) => asked.push(new URL(request.url()).pathname))
-  // Each page three screens below the last, so one in view has none near.
   await page.evaluate((files) => {
     const { pdf, h, mount } = window.harness
     pdf.configurePdf({ assets: '/pdf-assets/' })
@@ -599,7 +594,7 @@ test('a page far from view imports pdf.js and fetches nothing until scrolled nea
   }, files)
   await expect(page.locator('.mc-pdf-page')).toHaveCount(3)
   await page.waitForTimeout(500)
-  expect(asked.filter((path) => path !== '/favicon.ico')).toEqual([])
+  expect(asked).toEqual([])
   expect(page.workers()).toEqual([])
 
   await page.locator('.mc-pdf-page').nth(1).scrollIntoViewIfNeeded()

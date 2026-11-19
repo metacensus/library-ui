@@ -54,7 +54,7 @@ export function watch(
 ): () => void {
   if (!listening) {
     listening = true
-    // Released pages render again to print.
+    // Every watched page draws to print, released or never opened.
     addEventListener('beforeprint', () => watched.forEach((set) => set(true)))
   }
   const key = root ?? document
