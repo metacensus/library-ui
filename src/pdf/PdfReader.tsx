@@ -19,7 +19,14 @@ import {
   type Roving,
 } from './marks.js'
 import type { PdfPage } from './PdfPage.js'
-import { Failed, PageView, pageName, useAttempt, useDrawn } from './page.js'
+import {
+  Failed,
+  PageView,
+  pageName,
+  useAttempt,
+  useDrawn,
+  useNeared,
+} from './page.js'
 import { watch } from './queue.js'
 import { quadsOn } from './resolve.js'
 import { pageAt, placeOf, restore, type Place } from './scroll.js'
@@ -70,7 +77,7 @@ export function PdfReader({
   const [box, setBox] = useState<HTMLDivElement | null>(null)
   const sheet = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
-  const [neared, setNeared] = useState(false)
+  const neared = useNeared(box)
   const [loaded, setLoaded] = useState<Loaded>()
   const { attempt, error, fail, retry } = useAttempt(onError)
   const [fetched, setFetched] = useState<Record<number, PDFPageProxy>>({})
@@ -85,10 +92,6 @@ export function PdfReader({
   const scrolledTo = useRef<{ top: number; left: number }>()
 
   const failOpen = (error: unknown) => loaded?.live() && fail(error)
-
-  useEffect(() => {
-    if (box && !neared) return watch(box, (near) => near && setNeared(true))
-  }, [box, neared])
 
   // Callers pass new objects each render, so effects key on their contents.
   const file = 'url' in source ? source.url : source.data

@@ -1,5 +1,4 @@
-// One render queue per window, and one pair of observers per scroll root,
-// shared by every page.
+// One render queue per window, and one pair of observers per scroll root.
 
 type Job = { element: Element; root?: Element; run: () => Promise<void> }
 
@@ -46,7 +45,8 @@ const watched = new Map<Element, (near: boolean) => void>()
 const observers = new WeakMap<Element | Document, IntersectionObserver[]>()
 let listening = false
 
-/** Calls `set(true)` within one screen of `root`, `set(false)` beyond three. */
+/** Calls `set(true)` within one screen of `root` and before print,
+ *  `set(false)` beyond three. */
 export function watch(
   element: Element,
   set: (near: boolean) => void,
@@ -54,7 +54,6 @@ export function watch(
 ): () => void {
   if (!listening) {
     listening = true
-    // Every watched page draws to print.
     addEventListener('beforeprint', () => watched.forEach((set) => set(true)))
   }
   const key = root ?? document

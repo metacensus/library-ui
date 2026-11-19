@@ -46,6 +46,15 @@ export function useAttempt(onError?: (error: PdfError) => void) {
   return { attempt, error, fail, retry }
 }
 
+export function useNeared(element: Element | null) {
+  const [neared, setNeared] = useState(false)
+  useEffect(() => {
+    if (element && !neared)
+      return watch(element, (near) => near && setNeared(true))
+  }, [element, neared])
+  return neared
+}
+
 /** The marks to draw on `loaded`, each told to `onResolve` and carrying its
  *  fresh anchor where reanchored; undefined until they resolve. */
 export function useDrawn(

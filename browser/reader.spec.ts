@@ -13,6 +13,8 @@ type Shown = {
   marks?: PdfMark[]
   target?: PdfTarget
   jump?: number
+  /** A CSS length of space above the frame. */
+  above?: string
 }
 
 const thousand = {
@@ -21,11 +23,11 @@ const thousand = {
 }
 
 /** Shows a `PdfReader` in a frame `width` by `height` px, its callbacks logged
- *  to `window.calls`, and waits for its pages or its Notice. Called again on
- *  the same URL, it updates the reader. */
+ *  to `window.calls`, and waits for its pages or its Notice, or with `above`
+ *  for the frame. Called again on the same URL, it updates the reader. */
 async function show(page: Page, props: Shown, width = 800, height = 600) {
   await page.evaluate(
-    ({ props: { url, sha256, bytes, ...props }, width, height }) => {
+    ({ props: { url, sha256, bytes, above, ...props }, width, height }) => {
       const { pdf, h, mount } = window.harness
       pdf.configurePdf({ assets: '/pdf-assets/' })
       const calls = (window.calls ??= [])
@@ -38,6 +40,7 @@ async function show(page: Page, props: Shown, width = 800, height = 600) {
               gridTemplateRows: 'auto minmax(0, 1fr)',
               width: `${width}px`,
               height: `${height}px`,
+              marginTop: above,
             },
           },
           h('h1', null, 'PdfReader'),
@@ -57,7 +60,10 @@ async function show(page: Page, props: Shown, width = 800, height = 600) {
     },
     { props, width, height },
   )
-  await page.locator('.mc-pdf-slot, [role="note"]').first().waitFor()
+  await page
+    .locator(props.above ? '.mc-pdf-reader' : '.mc-pdf-slot, [role="note"]')
+    .first()
+    .waitFor()
 }
 
 /** The page at the top of the view, and how far down it the top is. */
@@ -171,25 +177,7 @@ test('a reader far from view imports pdf.js and fetches nothing until scrolled n
     asked.push(pathname)
     if (request.headers().range === 'bytes=0-65535') opened.push(pathname)
   })
-  await page.evaluate((source) => {
-    const { pdf, h, mount } = window.harness
-    pdf.configurePdf({ assets: '/pdf-assets/' })
-    mount(
-      h(
-        'main',
-        {
-          style: {
-            display: 'grid',
-            gridTemplateRows: 'minmax(0, 1fr)',
-            height: '600px',
-            marginTop: '300vh',
-          },
-        },
-        h(pdf.PdfReader, { source }),
-      ),
-    )
-  }, thousand)
-  await page.locator('.mc-pdf-reader').waitFor({ state: 'attached' })
+  await show(page, { ...thousand, above: '300vh' })
   await page.waitForTimeout(500)
   expect(asked).toEqual([])
   expect(page.workers()).toEqual([])
