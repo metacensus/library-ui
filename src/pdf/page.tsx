@@ -86,7 +86,7 @@ const maxPixels = 16_777_216
 
 export function PageView({
   view,
-  cropped,
+  role,
   name,
   marks,
   current,
@@ -96,7 +96,8 @@ export function PageView({
   root,
 }: {
   view?: View
-  cropped: boolean
+  /** `img` for a crop, drawn with no text layer; else the whole page's role. */
+  role: 'img' | 'group' | 'region'
   name: string
   marks: PdfMark[]
   current?: string
@@ -106,6 +107,7 @@ export function PageView({
   /** The box the page scrolls in; absent, the window. */
   root?: Element
 }) {
+  const cropped = role === 'img'
   const frame = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   const text = useRef<HTMLDivElement>(null)
@@ -176,7 +178,7 @@ export function PageView({
     <div
       ref={frame}
       className="mc-pdf-view"
-      role={cropped ? undefined : 'region'}
+      role={cropped ? undefined : role}
       aria-label={cropped ? undefined : name}
       style={size}
       onClick={click}
