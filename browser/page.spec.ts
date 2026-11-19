@@ -14,52 +14,57 @@ type Card = {
   crop?: PdfAnchor
   label?: string
   marks?: PdfMark[]
+  /** A CSS length of space above the card. */
+  above?: string
 }
 
 let mounts = 0
 
 /** Mounts a `PdfPage` per card in a `main` `width` px wide, its callbacks
  *  logged to `window.calls`, and waits for React to commit it. */
-async function mount(page: Page, cards: Card[], width: number, above = 0) {
+async function mount(page: Page, cards: Card[], width: number) {
   const id = String(++mounts)
   await page.evaluate(
-    ({ cards, width, above, id }) => {
+    ({ cards, width, id }) => {
       const { pdf, h, mount } = window.harness
       pdf.configurePdf({ assets: '/pdf-assets/' })
       const calls: unknown[][] = (window.calls = [])
       mount(
         h(
           'main',
-          {
-            'data-mount': id,
-            style: { width: `${width}px`, paddingTop: `${above}px` },
-          },
+          { 'data-mount': id, style: { width: `${width}px` } },
           h('h1', null, 'PdfPage'),
-          cards.map(({ url, bytes, sha256, ...card }, i) =>
-            h(pdf.PdfPage, {
-              key: `${id} ${i}`,
-              ...card,
-              source: bytes
-                ? { data: new Uint8Array(bytes) }
-                : { url: url!, sha256: sha256! },
-              onResolve: (resolutions) => calls.push(['resolve', resolutions]),
-              onMarkActivate: (id) => calls.push(['activate', id]),
-              onPageClick: (point) => calls.push(['click', point]),
-              onError: ({ kind, status }) =>
-                calls.push(['error', kind, status]),
-            }),
+          cards.map(({ url, bytes, sha256, above, ...card }, i) =>
+            h(
+              'div',
+              { key: `${id} ${i}`, style: { paddingTop: above } },
+              h(pdf.PdfPage, {
+                ...card,
+                source: bytes
+                  ? { data: new Uint8Array(bytes) }
+                  : { url: url!, sha256: sha256! },
+                onResolve: (resolutions) =>
+                  calls.push(['resolve', resolutions]),
+                onMarkActivate: (id) => calls.push(['activate', id]),
+                onPageClick: (point) => calls.push(['click', point]),
+                onError: ({ kind, status }) =>
+                  calls.push(['error', kind, status]),
+              }),
+            ),
           ),
         ),
       )
     },
-    { cards, width, above, id },
+    { cards, width, id },
   )
   await page.locator(`main[data-mount="${id}"]`).waitFor()
 }
 
 const marksDrawn = (page: Page, count: number) =>
   page.waitForFunction((count) => {
-    document.querySelector('.mc-pdf-page[aria-busy="true"]')?.scrollIntoView()
+    document
+      .querySelector('.mc-pdf-page[aria-busy="true"]')
+      ?.scrollIntoView({ block: 'nearest' })
     return document.querySelectorAll('.mc-pdf-mark').length === count
   }, count)
 
@@ -197,10 +202,10 @@ test('a crop is an image named by its label, and expands to a page region with i
         crop: at,
         label: 'the word sized',
         marks: [{ id: 'm', anchor: at, label: 'm' }],
+        above: '1000px',
       },
     ],
     600,
-    1000,
   )
   await marksDrawn(page, 1)
   await expect(page.getByRole('img', { name: 'the word sized' })).toBeVisible()
@@ -567,42 +572,36 @@ test('a click off the marks reports its point in user space', async ({
   }
 })
 
-test('a page far from view imports pdf.js and fetches nothing until scrolled near', async ({
+test('a page far from view imports pdf.js and fetches nothing until scrolled near or printed', async ({
   page,
 }) => {
-  const files = [
+  const [near, ...far] = [
     ...new Map((await targets()).map((t) => [t.url, t])).values(),
-  ].slice(0, 3)
+  ].slice(0, 4)
   const asked: string[] = []
-  page.on('request', (request) => asked.push(new URL(request.url()).pathname))
-  await page.evaluate((files) => {
-    const { pdf, h, mount } = window.harness
-    pdf.configurePdf({ assets: '/pdf-assets/' })
-    mount(
-      h(
-        'main',
-        null,
-        files.map(({ url, sha256, page }) =>
-          h(
-            'div',
-            { key: url, style: { paddingTop: '300vh' } },
-            h(pdf.PdfPage, { source: { url, sha256 }, page }),
-          ),
-        ),
-      ),
-    )
-  }, files)
-  await expect(page.locator('.mc-pdf-page')).toHaveCount(3)
+  const opened: string[] = []
+  page.on('request', (request) => {
+    const { pathname } = new URL(request.url())
+    asked.push(pathname)
+    if (request.headers().range === 'bytes=0-65535') opened.push(pathname)
+  })
+  const cards = far.map((t) => ({ ...t, above: '300vh' }))
+  await mount(page, cards, 400)
   await page.waitForTimeout(500)
   expect(asked).toEqual([])
   expect(page.workers()).toEqual([])
 
-  await page.locator('.mc-pdf-page').nth(1).scrollIntoViewIfNeeded()
-  await expect(page.locator('.mc-pdf-page[aria-busy="false"]')).toHaveCount(1)
+  const loaded = page.locator('.mc-pdf-page[aria-busy="false"]')
+  await mount(page, [near!, ...cards], 400)
+  await expect(loaded).toHaveCount(1)
+  await page.locator('.mc-pdf-page').nth(2).scrollIntoViewIfNeeded()
+  await expect(loaded).toHaveCount(2)
   await page.waitForTimeout(500)
-  expect(new Set(asked.filter((path) => path.endsWith('.pdf')))).toEqual(
-    new Set([files[1]!.url]),
-  )
+  expect(opened).toEqual([near!.url, far[1]!.url])
+
+  await page.evaluate(() => dispatchEvent(new Event('beforeprint')))
+  await expect(loaded).toHaveCount(4)
+  expect(opened.sort()).toEqual([near!, ...far].map((t) => t.url).sort())
   expect(page.workers()).toHaveLength(1)
 })
 
