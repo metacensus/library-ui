@@ -567,6 +567,46 @@ test('a click off the marks reports its point in user space', async ({
   }
 })
 
+test('a page far from view imports pdf.js and fetches nothing until scrolled near', async ({
+  page,
+}) => {
+  const files = [
+    ...new Map((await targets()).map((t) => [t.url, t])).values(),
+  ].slice(0, 3)
+  const asked: string[] = []
+  page.on('request', (request) => asked.push(new URL(request.url()).pathname))
+  // Each page three screens below the last, so one in view has none near.
+  await page.evaluate((files) => {
+    const { pdf, h, mount } = window.harness
+    pdf.configurePdf({ assets: '/pdf-assets/' })
+    mount(
+      h(
+        'main',
+        null,
+        files.map(({ url, sha256, page }) =>
+          h(
+            'div',
+            { key: url, style: { paddingTop: '300vh' } },
+            h(pdf.PdfPage, { source: { url, sha256 }, page }),
+          ),
+        ),
+      ),
+    )
+  }, files)
+  await expect(page.locator('.mc-pdf-page')).toHaveCount(3)
+  await page.waitForTimeout(500)
+  expect(asked.filter((path) => path !== '/favicon.ico')).toEqual([])
+  expect(page.workers()).toEqual([])
+
+  await page.locator('.mc-pdf-page').nth(1).scrollIntoViewIfNeeded()
+  await expect(page.locator('.mc-pdf-page[aria-busy="false"]')).toHaveCount(1)
+  await page.waitForTimeout(500)
+  expect(new Set(asked.filter((path) => path.endsWith('.pdf')))).toEqual(
+    new Set([files[1]!.url]),
+  )
+  expect(page.workers()).toHaveLength(1)
+})
+
 test('200 pages on one file open it once, render two at a time, and release far canvases', async ({
   page,
 }) => {
