@@ -245,9 +245,7 @@ test('one whole page shown twice under one label is two groups named by it', asy
     600,
   )
   const groups = page.getByRole('group', { name: 'the page' })
-  await expect(groups).toHaveCount(2)
-  for (const group of await groups.all())
-    await expect(group).toContainText(/\S/)
+  await expect(groups).toHaveText([/\S/, /\S/])
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 })
 

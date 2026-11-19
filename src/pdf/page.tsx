@@ -96,7 +96,6 @@ export function PageView({
   root,
 }: {
   view?: View
-  /** `img` for a crop, drawn with no text layer; else the whole page's role. */
   role: 'img' | 'group' | 'region'
   name: string
   marks: PdfMark[]

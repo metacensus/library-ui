@@ -119,7 +119,7 @@ test('PdfPage renders a busy frame on the server, whole or cropped', async () =>
   const source = { url: '/paper.pdf', sha256: '0'.repeat(64) }
   const whole = renderToString(h(PdfPage, { source, page: 3 }))
   assert.match(whole, /aria-busy="true"/)
-  assert.match(whole, /role="region" aria-label="Page 3"/)
+  assert.match(whole, /role="group" aria-label="Page 3"/)
   const crop = {
     source: { sha256: '0'.repeat(64) },
     selector: [
