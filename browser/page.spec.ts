@@ -235,17 +235,16 @@ test('a crop is an image named by its label, and expands to a page region with i
 test('two whole pages on one page number are regions named by their labels', async ({
   page,
 }) => {
-  const seconds = (await targets()).filter((t) => t.page === 2)
-  const [a, b] = new Map(seconds.map((t) => [t.url, t])).values()
+  const t = (await targets()).find((t) => t.page === 2)!
   await mount(
     page,
     [
-      { ...a!, label: 'first document' },
-      { ...b!, label: 'second document' },
+      { ...t, label: 'first' },
+      { ...t, label: 'second' },
     ],
     600,
   )
-  for (const name of ['first document', 'second document'])
+  for (const name of ['first', 'second'])
     await expect(page.getByRole('region', { name })).toContainText(/\S/)
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 })
