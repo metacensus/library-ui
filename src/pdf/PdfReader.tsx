@@ -70,6 +70,7 @@ export function PdfReader({
   const [box, setBox] = useState<HTMLDivElement | null>(null)
   const sheet = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
+  const [neared, setNeared] = useState(false)
   const [loaded, setLoaded] = useState<Loaded>()
   const { attempt, error, fail, retry } = useAttempt(onError)
   const [fetched, setFetched] = useState<Record<number, PDFPageProxy>>({})
@@ -85,9 +86,14 @@ export function PdfReader({
 
   const failOpen = (error: unknown) => loaded?.live() && fail(error)
 
+  useEffect(() => {
+    if (box && !neared) return watch(box, (near) => near && setNeared(true))
+  }, [box, neared])
+
   // Callers pass new objects each render, so effects key on their contents.
   const file = 'url' in source ? source.url : source.data
   useEffect(() => {
+    if (!neared) return
     const lease = open(source)
     let live = true
     Promise.all([lease.document, lease.sha256])
@@ -108,7 +114,7 @@ export function PdfReader({
       setLoaded(undefined)
       setFetched({})
     }
-  }, [file, source.sha256, attempt])
+  }, [neared, file, source.sha256, attempt])
 
   // Page 1 comes with the document; the rest are fetched as they near the view.
   const fetch = useMemo(() => {

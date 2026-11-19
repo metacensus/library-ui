@@ -161,6 +161,45 @@ test('page 1 paints before any page past 3 is fetched', async ({ page }) => {
   for (const [n, painted] of far) expect(painted, `page ${n}`).toBe(true)
 })
 
+test('a reader far from view imports pdf.js and fetches nothing until scrolled near', async ({
+  page,
+}) => {
+  const asked: string[] = []
+  const opened: string[] = []
+  page.on('request', (request) => {
+    const { pathname } = new URL(request.url())
+    asked.push(pathname)
+    if (request.headers().range === 'bytes=0-65535') opened.push(pathname)
+  })
+  await page.evaluate((source) => {
+    const { pdf, h, mount } = window.harness
+    pdf.configurePdf({ assets: '/pdf-assets/' })
+    mount(
+      h(
+        'main',
+        {
+          style: {
+            display: 'grid',
+            gridTemplateRows: 'minmax(0, 1fr)',
+            height: '600px',
+            marginTop: '300vh',
+          },
+        },
+        h(pdf.PdfReader, { source }),
+      ),
+    )
+  }, thousand)
+  await page.locator('.mc-pdf-reader').waitFor({ state: 'attached' })
+  await page.waitForTimeout(500)
+  expect(asked).toEqual([])
+  expect(page.workers()).toEqual([])
+
+  await page.locator('.mc-pdf-reader').scrollIntoViewIfNeeded()
+  await expect(page.getByRole('region', { name: 'Page 1' })).toBeVisible()
+  await page.waitForTimeout(500)
+  expect(opened).toEqual([thousand.url])
+})
+
 test('a placeholder corrected above the page in view does not move it', async ({
   page,
 }) => {
