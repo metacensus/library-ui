@@ -30,7 +30,7 @@ type Props = {
   page: number
   /** Shows this anchor's quads on `page`, plus 30 pt; absent, the whole page. */
   crop?: PdfAnchor
-  /** The cropped image's accessible name. */
+  /** The accessible name; absent, the page number. */
   label?: string
   marks?: PdfMark[]
   /** A mark id, drawn heavier. */
@@ -153,9 +153,8 @@ export function PdfPage({
               view={view}
               cropped={cropped}
               name={
-                cropped
-                  ? (label ?? `Page ${page}`)
-                  : pageName(page, loaded?.printed)
+                label ??
+                (cropped ? `Page ${page}` : pageName(page, loaded?.printed))
               }
               marks={drawn ?? []}
               current={current}
