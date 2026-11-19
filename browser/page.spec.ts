@@ -57,11 +57,15 @@ async function mount(page: Page, cards: Card[], width: number, above = 0) {
   await page.locator(`main[data-mount="${id}"]`).waitFor()
 }
 
+/** Scrolls a screen at a time, from the bottom back to the top, until `count`
+ *  marks are drawn, since a page opens only once near the viewport. */
 const marksDrawn = (page: Page, count: number) =>
-  page.waitForFunction(
-    (count) => document.querySelectorAll('.mc-pdf-mark').length === count,
-    count,
-  )
+  page.waitForFunction((count) => {
+    if (document.querySelectorAll('.mc-pdf-mark').length === count) return true
+    const bottom = scrollY + innerHeight >= document.body.scrollHeight
+    scrollTo(0, bottom ? 0 : scrollY + innerHeight)
+    return false
+  }, count)
 
 /** Each view's size, and its marks' shapes' bounds inside it. */
 const measure = (page: Page) =>
