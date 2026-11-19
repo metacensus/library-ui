@@ -218,7 +218,7 @@ test('a crop is an image named by its label, and expands to a page region with i
   await expect(toggle).toHaveAttribute('aria-expanded', 'true')
   await expect(page.locator('.mc-pdf-mark')).toBeInViewport()
 
-  const region = page.getByRole('region', { name: 'Page 3' })
+  const region = page.getByRole('region', { name: 'the word sized' })
   await expect(region).toContainText('sized')
   const selected = await region.evaluate((view) => {
     getSelection()!.selectAllChildren(view.querySelector('.mc-pdf-text')!)
@@ -230,6 +230,24 @@ test('a crop is an image named by its label, and expands to a page region with i
   await toggle.click()
   await expect(toggle).toHaveAttribute('aria-expanded', 'false')
   await expect(page.getByRole('img', { name: 'the word sized' })).toBeVisible()
+})
+
+test('two whole pages on one page number are regions named by their labels', async ({
+  page,
+}) => {
+  const seconds = (await targets()).filter((t) => t.page === 2)
+  const [a, b] = new Map(seconds.map((t) => [t.url, t])).values()
+  await mount(
+    page,
+    [
+      { ...a!, label: 'first document' },
+      { ...b!, label: 'second document' },
+    ],
+    600,
+  )
+  for (const name of ['first document', 'second document'])
+    await expect(page.getByRole('region', { name })).toContainText(/\S/)
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 })
 
 // Three lines of red ink on black, each 12 pt tall and 4 pt apart, the first
