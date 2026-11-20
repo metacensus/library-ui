@@ -30,11 +30,12 @@ Marks are importable as `@metacensus/library-ui/marks/mark.svg` and its siblings
 
 Any unlayered rule of yours now beats the package's, whatever its specificity: a bare `button { ... }` beats `.mc-button`, which it did not before. That is how your own CSS wins. To choose the layer's name, import it as `@import '@metacensus/library-ui/styles.css' layer(brand);`, which nests the rules as `brand.mc`, and name `brand` in the ordering line in place of `mc`.
 
-Components render on the server: no router, auth or API client, and no browser global while rendering. In Astro, add `@astrojs/react`; the marks and chrome render at build with no `client:` directive and ship no JS. Only `ThemeToggle` needs one, as `client:visible`.
+Components render on the server: no router, auth or API client, and no browser global while rendering. In Astro, add `@astrojs/react`; the marks and chrome render at build with no `client:` directive and ship no JS. Only `ThemeToggle` and `ContributorCard` need one, as `client:visible`.
 
 - Marks: `MetaCensusMark`, `MetaCensusLockup`, `MetaCensusWordmark` (the lockup's letters alone, in `WORDMARK_VIEWBOX`), `MetaCensusArrow`, `LogoArrowMorph`, and the shared geometry, including the lockup's spacing (`LOCKUP_VIEWBOX`, and `LOCKUP_MARK_BOX` for the mark's box within it).
 - Chrome: `Header` (`nav` and `actions` slots, which wrap on a narrow screen; with no `nav`, the `actions` sit at the end of the row), `Footer` (`brand` replaces the linked lockup and its link is the consumer's; `tagline`; link columns as children), `Nav` (`links`).
 - Tools: `cn`, `Button`, `Notice`, `Chip`, the form kit (`Field`, `Label`, `Input`, `Textarea`, `Select`, `Checkbox`, `RadioGroup`, `FieldError`), `useTheme`, `ThemeToggle`, `themeScript`.
+- People: `ContributorCard` (a person's photo, name, role, flavor chip and bio, whose bio floats open on hover or focus), `ContributorFlavorKey`, and `AudienceIcon` for each of `AUDIENCES`, labelled from `AUDIENCE_LABELS`.
 
 - Marks take `variant`: `auto` (the default: solid on light, reversed on dark), `solid` or `reversed`, and `gradient` on the lockup, which needs a white or very light ground. Mark usage is in [TRADEMARKS.md](TRADEMARKS.md).
 - `LogoArrowMorph` is a pure function of `progress`, 0 the mark and 1 the arrow; whatever places it owns the timing. Keep it horizontal.

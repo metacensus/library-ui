@@ -8,6 +8,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { createElement as h } from 'react'
+// Loaded before the guards below: ContributorCard's portal imports it, and
+// react-dom probes for `window` as it loads, not as it renders.
+import 'react-dom'
 import { renderToString } from 'react-dom/server'
 
 // A browser global read while rendering throws.
@@ -511,4 +514,50 @@ test('an inverse Button is white on Purple ink, 3:1 on Purple and night, label 4
   }
   assert.ok(contrast(label, fill) >= 4.5, 'label on white')
   assert.ok(contrast(label, hover) >= 4.5, 'label on hover')
+})
+
+test('each audience icon is a labelled image with a mask of its own', () => {
+  assert.deepEqual(Object.keys(ui.AUDIENCE_LABELS), [...ui.AUDIENCES])
+  const html = renderToString(
+    h(
+      'div',
+      null,
+      ui.AUDIENCES.map((audience) =>
+        h(ui.AudienceIcon, { audience, key: audience }),
+      ),
+      h(ui.AudienceIcon, { audience: 'funders' }),
+    ),
+  )
+  for (const label of Object.values(ui.AUDIENCE_LABELS))
+    assert.ok(html.includes(`role="img" aria-label="${label}"`), label)
+  const ids = [...html.matchAll(/<mask id="([^"]+)"/g)].map((m) => m[1])
+  assert.equal(ids.length, ui.AUDIENCES.length + 1)
+  assert.equal(new Set(ids).size, ids.length)
+  for (const id of ids) assert.ok(html.includes(`mask="url(#${id})"`), id)
+})
+
+test('a ContributorCard renders its name at its level, with or without a bio', () => {
+  const card = (props, bio) =>
+    renderToString(
+      h(ui.ContributorCard, { name: 'Ada Example', level: 3, ...props }, bio),
+    )
+  const full = card(
+    { href: '/ada', role: 'Engineer', metacensusTitle: true, flavor: 'both' },
+    h('p', null, 'Bio'),
+  )
+  assert.match(
+    full,
+    /<h3 class="mc-contributor-name"><a href="\/ada">Ada Example<\/a><\/h3>/,
+  )
+  assert.match(full, /mc-contributor-role mc-contributor-title/)
+  assert.match(full, /aria-label="Engineering and Quantitative science"/)
+  assert.match(full, /mc-contributor-with-bio/)
+  assert.match(full, /mc-contributor-initials">AE</)
+  const bare = card({ image: '/ada.webp' })
+  assert.match(bare, /<img src="\/ada.webp" alt="Ada Example"/)
+  assert.doesNotMatch(bare, /mc-contributor-bio|mc-flavor/)
+  assert.match(
+    renderToString(h(ui.ContributorFlavorKey)),
+    /<ul aria-label="Contributor flavors" class="mc-flavor-key">/,
+  )
 })
