@@ -34,6 +34,7 @@ export function open(source: PdfSource): Lease {
 type Entry = {
   key: string
   holds: number
+  aborted: AbortController
   task: Promise<PDFDocumentLoadingTask>
   document: Promise<PDFDocumentProxy>
 }
@@ -44,13 +45,15 @@ const registry = new Map<string, Entry>()
 function load(key: string, source: PdfSource): Entry {
   let lose!: (error: PdfError) => void
   const lost = new Promise<never>((_, reject) => (lose = reject))
-  const task = start(source, (error) => {
+  const aborted = new AbortController()
+  const task = start(source, aborted.signal, (error) => {
     lose(error)
     close(entry)
   })
   const entry: Entry = {
     key,
     holds: 0,
+    aborted,
     task,
     document: Promise.race([task.then((task) => task.promise), lost]).catch(
       (error) => {
@@ -71,8 +74,11 @@ function release(entry: Entry) {
   })
 }
 
+// A destroy cancels each range's reader before it aborts the transport, and a
+// range answered between them reaches no reader. So ranges abort first.
 function close(entry: Entry) {
   if (registry.get(entry.key) === entry) registry.delete(entry.key)
+  entry.aborted.abort()
   void entry.task.then(
     (task) => task.destroy(),
     () => {},
@@ -83,6 +89,7 @@ type Pdfjs = typeof import('pdfjs-dist')
 
 async function start(
   source: PdfSource,
+  signal: AbortSignal,
   lost: (error: PdfError) => void,
 ): Promise<PDFDocumentLoadingTask> {
   if (!assets) throw failure('assets', 'configurePdf was not called')
@@ -90,7 +97,7 @@ async function start(
   const file =
     'data' in source
       ? { data: source.data.slice() }
-      : await fromUrl(pdfjs, source, lost)
+      : await fromUrl(pdfjs, source, signal, lost)
   return pdfjs.getDocument({
     ...file,
     worker: await shared(pdfjs),
@@ -130,6 +137,7 @@ const chunk = 65536
 async function fromUrl(
   pdfjs: Pdfjs,
   source: UrlSource,
+  signal: AbortSignal,
   lost: (error: PdfError) => void,
 ) {
   const first = await get(source, `bytes=0-${chunk - 1}`)
@@ -139,11 +147,9 @@ async function fromUrl(
       data: first.status === 206 ? (await get(source)).bytes : first.bytes,
     }
   const range = new pdfjs.PDFDataRangeTransport(length, first.bytes)
-  const aborted = new AbortController()
-  range.abort = () => aborted.abort()
   range.requestDataRange = (begin, end) => {
     const asked = `${begin}-${end - 1}`
-    get(source, `bytes=${asked}`, aborted.signal)
+    get(source, `bytes=${asked}`, signal)
       .then(({ status, answer, bytes }) => {
         if (status !== 206 || !answer?.startsWith(`bytes ${asked}/`))
           throw failure('fetch', `range ${asked} answered ${status} ${answer}`)

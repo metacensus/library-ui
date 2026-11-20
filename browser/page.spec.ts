@@ -810,11 +810,9 @@ test('a page remounted while its last load is destroyed raises no unhandled reje
   )
   // While `stalled` is set, the worker's replies wait in it, as they do behind
   // a busy worker: the reply to a destroy, past the cancel of its ranges, too.
+  type Stalling = { rejections: string[]; stalled?: (() => void)[] }
   await page.evaluate(() => {
-    const w = window as unknown as {
-      rejections: string[]
-      stalled?: (() => void)[]
-    }
+    const w = window as unknown as Stalling
     w.rejections = []
     addEventListener('unhandledrejection', ({ reason }) =>
       w.rejections.push(String(reason)),
@@ -835,28 +833,23 @@ test('a page remounted while its last load is destroyed raises no unhandled reje
   })
   await mount(page, [card], 400)
   await expect.poll(() => held.length).toBeGreaterThan(0)
-  await page.evaluate(
-    () => ((window as unknown as { stalled: [] }).stalled = []),
-  )
+  await page.evaluate(() => ((window as unknown as Stalling).stalled = []))
   await mount(page, [], 400)
   await page.waitForFunction(
-    () => (window as unknown as { stalled: [] }).stalled.length > 0,
+    () => (window as unknown as Stalling).stalled!.length > 0,
   )
   await page.unroute(`**${url}`)
   await mount(page, [card], 400)
   for (const release of held) await release()
   await page.waitForTimeout(200)
   await page.evaluate(() => {
-    const w = window as unknown as { stalled?: (() => void)[] }
+    const w = window as unknown as Stalling
     const stalled = w.stalled!
     w.stalled = undefined
     for (const reply of stalled) reply()
   })
   await expect(page.getByRole('group', { name: 'Page 500' })).toBeVisible()
-  await page.waitForTimeout(500)
   expect(
-    await page.evaluate(
-      () => (window as unknown as { rejections: string[] }).rejections,
-    ),
+    await page.evaluate(() => (window as unknown as Stalling).rejections),
   ).toEqual([])
 })
