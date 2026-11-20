@@ -41,7 +41,7 @@ function distance({ element, root }: Job) {
   return Math.max(0, top - view.bottom, view.top - bottom)
 }
 
-const watched = new Map<Element, (near: boolean) => void>()
+const watched = new WeakMap<Element, (near: boolean) => void>()
 const observers = new WeakMap<Element | Document, IntersectionObserver[]>()
 
 /** Calls `set(true)` within one screen of `root`, `set(false)` beyond three. */

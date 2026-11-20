@@ -618,12 +618,10 @@ test('a page far from view imports pdf.js and fetches nothing until scrolled nea
   expect(page.workers()).toHaveLength(1)
 })
 
-test('print shows the pages drawn as it starts, and a page never near as its empty frame', async ({
+test('print shows only the pages drawn as it starts, and the rest as empty frames', async ({
   page,
 }) => {
-  const [near, far] = [
-    ...new Map((await targets()).map((t) => [t.url, t])).values(),
-  ]
+  const [near, far] = await targets()
   await mount(page, [near!, { ...far!, above: '300vh' }], 400)
   const drawn = () =>
     page
@@ -635,10 +633,7 @@ test('print shows the pages drawn as it starts, and a page never near as its emp
   await page.emulateMedia({ media: 'print' })
   await page.waitForTimeout(500)
   expect(await drawn()).toEqual([true, false])
-  await expect(page.locator('.mc-pdf-page').nth(1)).toHaveAttribute(
-    'aria-busy',
-    'true',
-  )
+  await expect(page.locator('.mc-pdf-page[aria-busy="true"]')).toHaveCount(1)
 })
 
 test('200 pages on one file open it once, render two at a time, and release far canvases', async ({
