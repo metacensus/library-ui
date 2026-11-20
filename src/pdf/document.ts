@@ -75,7 +75,7 @@ function release(entry: Entry) {
 }
 
 // A destroy cancels each range's reader before it aborts the transport, and a
-// range answered between them reaches no reader. So ranges abort first.
+// range answered between them reaches no reader.
 function close(entry: Entry) {
   if (registry.get(entry.key) === entry) registry.delete(entry.key)
   entry.aborted.abort()
