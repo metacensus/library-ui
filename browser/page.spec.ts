@@ -589,7 +589,7 @@ test('a click off the marks reports its point in user space', async ({
   }
 })
 
-test('a page far from view imports pdf.js and fetches nothing until scrolled near or printed', async ({
+test('a page far from view imports pdf.js and fetches nothing until scrolled near', async ({
   page,
 }) => {
   const [near, ...far] = [
@@ -615,11 +615,30 @@ test('a page far from view imports pdf.js and fetches nothing until scrolled nea
   await expect(loaded).toHaveCount(2)
   await page.waitForTimeout(500)
   expect(opened).toEqual([near!.url, far[1]!.url])
+  expect(page.workers()).toHaveLength(1)
+})
+
+test('print shows the pages drawn as it starts, and a page never near as its empty frame', async ({
+  page,
+}) => {
+  const [near, far] = [
+    ...new Map((await targets()).map((t) => [t.url, t])).values(),
+  ]
+  await mount(page, [near!, { ...far!, above: '300vh' }], 400)
+  const drawn = () =>
+    page
+      .locator('.mc-pdf-view > canvas')
+      .evaluateAll((all: HTMLCanvasElement[]) => all.map((c) => c.width > 0))
+  await expect.poll(drawn).toEqual([true, false])
 
   await page.evaluate(() => dispatchEvent(new Event('beforeprint')))
-  await expect(loaded).toHaveCount(4)
-  expect(opened.sort()).toEqual([near!, ...far].map((t) => t.url).sort())
-  expect(page.workers()).toHaveLength(1)
+  await page.emulateMedia({ media: 'print' })
+  await page.waitForTimeout(500)
+  expect(await drawn()).toEqual([true, false])
+  await expect(page.locator('.mc-pdf-page').nth(1)).toHaveAttribute(
+    'aria-busy',
+    'true',
+  )
 })
 
 test('200 pages on one file open it once, render two at a time, and release far canvases', async ({
