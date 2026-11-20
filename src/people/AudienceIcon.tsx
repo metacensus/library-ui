@@ -23,7 +23,8 @@ export const AUDIENCE_LABELS: Record<Audience, string> = {
 }
 
 /** `</>` on a 24-unit square, as strokes: the engineering flavor's glyph and
- *  the engineers' symbol. */
+ *  the engineers' symbol. Lucide's `code-xml`, under the ISC license in
+ *  LICENSES/ISC.txt. */
 export const CODE_PATH = 'M18 16l4-4-4-4M6 8l-4 4 4 4M14.5 4l-5 16'
 
 /* A person is a solid head and shoulders with a symbol beside the head that

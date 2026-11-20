@@ -552,9 +552,9 @@ test('a ContributorCard renders its name at its level, with or without a bio', (
   assert.match(full, /mc-contributor-role mc-contributor-title/)
   assert.match(full, /aria-label="Engineering and Quantitative science"/)
   assert.match(full, /mc-contributor-with-bio/)
-  assert.match(full, /mc-contributor-initials">AE</)
+  assert.match(full, /mc-contributor-initials" aria-hidden="true">AE</)
   const bare = card({ image: '/ada.webp' })
-  assert.match(bare, /<img src="\/ada.webp" alt="Ada Example"/)
+  assert.match(bare, /<img src="\/ada.webp" alt=""/)
   assert.doesNotMatch(bare, /mc-contributor-bio|mc-flavor/)
   assert.match(
     renderToString(h(ui.ContributorFlavorKey)),

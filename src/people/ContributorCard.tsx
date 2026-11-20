@@ -100,7 +100,7 @@ type ContributorCardProps = {
   metacensusTitle?: boolean
   flavor?: ContributorFlavor
   /** The heading level of the name. */
-  level: number
+  level: 1 | 2 | 3 | 4 | 5 | 6
   /** The bio, clamped to the card and shown whole while it is hovered or
    *  focused. */
   children?: ReactNode
@@ -108,9 +108,23 @@ type ContributorCardProps = {
 
 type Rect = { top: number; left: number; width: number }
 
+/** The floated copy repeats the resting card, which keeps focus and the
+ *  accessible content: hide the copy from assistive tech and the tab order,
+ *  and keep its bottom on screen. */
+const settle = (copy: HTMLDivElement | null) => {
+  if (!copy) return
+  copy
+    .querySelectorAll<HTMLElement>('a, button, [tabindex]')
+    .forEach((el) => (el.tabIndex = -1))
+  const over = copy.getBoundingClientRect().bottom - window.innerHeight
+  if (over > 0)
+    copy.style.top = `${Math.max(0, parseFloat(copy.style.top) - over)}px`
+}
+
 /** A person who contributes: photo or initials, name, role, flavor and bio,
  *  in a fixed 18rem by 12rem footprint. Hovered or focused, the card floats
- *  over the page at full height, so it needs a `client:` directive to grow. */
+ *  over the page at full height until both end or Escape is pressed, so it
+ *  needs a `client:` directive to grow. */
 export function ContributorCard({
   name,
   href,
@@ -121,15 +135,20 @@ export function ContributorCard({
   level,
   children,
 }: ContributorCardProps) {
-  const Name = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
+  const Name = `h${level}` as const
   const shellRef = useRef<HTMLDivElement>(null)
-  const [floatRect, setFloatRect] = useState<Rect | null>(null)
-  const floating = floatRect !== null
+  const [rect, setRect] = useState<Rect | null>(null)
+  const [hovered, setHovered] = useState(false)
+  const [focused, setFocused] = useState(false)
+  // Escape holds the card down until a new focus, or until hover and focus
+  // have both ended: removing the copy can fire a fresh mouseenter.
+  const [dismissed, setDismissed] = useState(false)
+  if (dismissed && !hovered && !focused) setDismissed(false)
+  const floating = rect !== null && (hovered || focused) && !dismissed
 
   const measure = () => {
-    const rect = shellRef.current?.getBoundingClientRect()
-    if (rect)
-      setFloatRect({ top: rect.top, left: rect.left, width: rect.width })
+    const r = shellRef.current?.getBoundingClientRect()
+    if (r) setRect({ top: r.top, left: r.left, width: r.width })
   }
 
   // Keep the floating card on its shell while the page scrolls.
@@ -143,8 +162,19 @@ export function ContributorCard({
     }
   }, [floating])
 
+  // From mount, so an Escape that follows the hover at once is not lost.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setDismissed(true)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   const card = (style?: CSSProperties) => (
     <div
+      ref={style && ((copy) => settle(copy))}
+      aria-hidden={style && true}
       className={cn(
         'mc-contributor',
         style ? 'mc-contributor-floating' : 'mc-contributor-resting',
@@ -161,14 +191,17 @@ export function ContributorCard({
         {image ? (
           <img
             src={image}
-            alt={name}
+            alt=""
             width={48}
             height={48}
             loading="lazy"
             className="mc-contributor-photo"
           />
         ) : (
-          <div className="mc-contributor-photo mc-contributor-initials">
+          <div
+            className="mc-contributor-photo mc-contributor-initials"
+            aria-hidden
+          >
             {name
               .split(' ')
               .slice(0, 2)
@@ -205,19 +238,25 @@ export function ContributorCard({
     <div
       ref={shellRef}
       className="mc-contributor-shell"
-      onMouseEnter={measure}
-      onMouseLeave={() => setFloatRect(null)}
-      onFocusCapture={measure}
+      onMouseEnter={() => {
+        measure()
+        setHovered(true)
+      }}
+      onMouseLeave={() => setHovered(false)}
+      onFocusCapture={() => {
+        measure()
+        setFocused(true)
+        setDismissed(false)
+      }}
       onBlurCapture={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null))
-          setFloatRect(null)
+          setFocused(false)
       }}
     >
       {card()}
       {/* A transformed ancestor, such as a marquee, would hold a fixed card
           inside it; the portal sets it against the viewport. */}
-      {floatRect &&
-        createPortal(card({ ...floatRect, zIndex: 50 }), document.body)}
+      {floating && createPortal(card({ ...rect, zIndex: 50 }), document.body)}
     </div>
   )
 }
