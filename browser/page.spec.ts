@@ -792,3 +792,71 @@ test('a source changed mid-render shows the new page, with no Notice and no onEr
   await expect(page.getByRole('button', { name: 'Retry' })).toHaveCount(0)
   expect(await page.evaluate(() => window.calls)).toEqual([])
 })
+
+test('a page remounted while its last load is destroyed raises no unhandled rejection', async ({
+  page,
+}) => {
+  const url = '/corpus/thousand-pages.pdf'
+  const card = {
+    url,
+    sha256: sha256(readFileSync(join(corpus, 'thousand-pages.pdf'))),
+    page: 500,
+  }
+  const held: (() => Promise<void>)[] = []
+  await page.route(`**${url}`, (route) =>
+    route.request().headers().range === 'bytes=0-65535'
+      ? route.continue()
+      : held.push(() => route.continue().catch(() => {})),
+  )
+  // While `stalled` is set, the worker's replies wait in it, as they do behind
+  // a busy worker: the reply to a destroy, past the cancel of its ranges, too.
+  await page.evaluate(() => {
+    const w = window as unknown as {
+      rejections: string[]
+      stalled?: (() => void)[]
+    }
+    w.rejections = []
+    addEventListener('unhandledrejection', ({ reason }) =>
+      w.rejections.push(String(reason)),
+    )
+    const listen = Worker.prototype.addEventListener
+    Worker.prototype.addEventListener = function (
+      this: Worker,
+      type: string,
+      listener: (event: MessageEvent) => void,
+      options?: AddEventListenerOptions,
+    ) {
+      const stalling = (event: MessageEvent) =>
+        w.stalled && event.data?.callback
+          ? w.stalled.push(() => listener.call(this, event))
+          : listener.call(this, event)
+      listen.call(this, type, stalling as EventListener, options)
+    } as typeof listen
+  })
+  await mount(page, [card], 400)
+  await expect.poll(() => held.length).toBeGreaterThan(0)
+  await page.evaluate(
+    () => ((window as unknown as { stalled: [] }).stalled = []),
+  )
+  await mount(page, [], 400)
+  await page.waitForFunction(
+    () => (window as unknown as { stalled: [] }).stalled.length > 0,
+  )
+  await page.unroute(`**${url}`)
+  await mount(page, [card], 400)
+  for (const release of held) await release()
+  await page.waitForTimeout(200)
+  await page.evaluate(() => {
+    const w = window as unknown as { stalled?: (() => void)[] }
+    const stalled = w.stalled!
+    w.stalled = undefined
+    for (const reply of stalled) reply()
+  })
+  await expect(page.getByRole('group', { name: 'Page 500' })).toBeVisible()
+  await page.waitForTimeout(500)
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { rejections: string[] }).rejections,
+    ),
+  ).toEqual([])
+})
