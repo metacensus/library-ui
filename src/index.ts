@@ -24,6 +24,17 @@ export {
 } from './tools/form.js'
 export { Notice } from './tools/Notice.js'
 export {
+  AUDIENCES,
+  AUDIENCE_LABELS,
+  AudienceIcon,
+  type Audience,
+} from './people/AudienceIcon.js'
+export {
+  ContributorCard,
+  ContributorFlavorKey,
+  type ContributorFlavor,
+} from './people/ContributorCard.js'
+export {
   ThemeToggle,
   themeScript,
   useTheme,

@@ -1,5 +1,6 @@
 import { createElement, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
+import * as ui from '../src/index.js'
 import * as documents from '../src/pdf/document.js'
 import * as pdf from '../src/pdf/index.js'
 import * as ink from './ink.js'
@@ -15,6 +16,7 @@ document.addEventListener('securitypolicyviolation', (e) =>
 const root = createRoot(document.getElementById('root')!)
 
 const harness = {
+  ui,
   pdf,
   documents,
   ink,
