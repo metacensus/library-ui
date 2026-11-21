@@ -33,6 +33,11 @@ test('a click cycles system, light, dark and back, on the root and the label', a
     expect(await rootTheme()).toBe(theme)
     await button.click()
   }
+  await page.locator('.mc-theme-toggle').focus()
+  await page.keyboard.press('Enter')
+  await expect(
+    page.getByRole('button', { name: 'Theme: Dark. Switch to System' }),
+  ).toBeVisible()
 })
 
 test('it floats at the bottom and shows its name only on hover or focus', async ({
@@ -57,4 +62,16 @@ test('it floats at the bottom and shows its name only on hover or focus', async 
   await button.focus()
   await widened()
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+})
+
+test('with reduced motion the name shows without a transition', async ({
+  page,
+}) => {
+  const duration = () =>
+    page
+      .locator('.mc-theme-toggle-name')
+      .evaluate((el) => getComputedStyle(el).transitionDuration)
+  expect(await duration()).not.toMatch(/^0s(, 0s)*$/)
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  expect(await duration()).toMatch(/^0s(, 0s)*$/)
 })
