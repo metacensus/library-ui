@@ -162,6 +162,13 @@ test('a Field wires its label, control and error together', () => {
   assert.ok(html.includes('aria-invalid="true"'))
 })
 
+test('ThemeToggle renders the system icon, its name, and what a click does', () => {
+  const html = renderToString(h(ui.ThemeToggle))
+  assert.match(html, /aria-label="Theme: System\. Switch to Light"/)
+  assert.match(html, /<svg[^>]*aria-hidden="true"/)
+  assert.match(html, /<span class="mc-theme-toggle-name">System<\/span>/)
+})
+
 test('the head script puts a stored theme on the root and never throws', () => {
   const classes = new Set()
   const run = (storage) =>

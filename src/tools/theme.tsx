@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react'
+import { useSyncExternalStore, type ReactNode } from 'react'
 import { cn } from './cn.js'
 
 /** `system` follows the OS; `light` and `dark` are the viewer's override. */
@@ -52,16 +52,55 @@ const NEXT: Record<Theme, Theme> = {
   dark: 'system',
 }
 
-/** A button that cycles system, light, dark. Hydrate it alone. */
+const NAMES: Record<Theme, string> = {
+  system: 'System',
+  light: 'Light',
+  dark: 'Dark',
+}
+
+/** Lucide's `monitor`, `sun` and `moon` on a 24-unit square, under the ISC
+ *  license in LICENSES/ISC.txt. */
+const ICONS: Record<Theme, ReactNode> = {
+  system: (
+    <>
+      <rect x="2" y="3" width="20" height="14" rx="2" />
+      <path d="M8 21h8M12 17v4" />
+    </>
+  ),
+  light: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+    </>
+  ),
+  dark: <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />,
+}
+
+/** A round button fixed at the bottom of the viewport: the current theme's
+ *  icon, its name on hover or focus, and a click to the next of system, light,
+ *  dark. Render it once per page, from the layout; hydrate it alone. */
 export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme()
+  const name = NAMES[theme]
   return (
     <button
       type="button"
       className={cn('mc-theme-toggle', className)}
+      aria-label={`Theme: ${name}. Switch to ${NAMES[NEXT[theme]]}`}
       onClick={() => setTheme(NEXT[theme])}
     >
-      Theme: {theme}
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        {ICONS[theme]}
+      </svg>
+      <span className="mc-theme-toggle-name">{name}</span>
     </button>
   )
 }
