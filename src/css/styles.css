@@ -17,7 +17,43 @@
     width: auto;
   }
   .mc-fill-auto {
-    fill: light-dark(var(--mc-purple-bold), var(--mc-white));
+    fill: var(--mc-purple-bold);
+    overflow: visible;
+  }
+  /* The halo under an `auto` mark, rendered only on a dark ground: the OS
+     setting, or the nearest `.dark` or `.light` ancestor, as tokens.css
+     resolves the scheme. */
+  .mc-halo-flood {
+    flood-color: var(--mc-purple-tint);
+  }
+  .mc-halo {
+    display: none;
+  }
+  @media (prefers-color-scheme: dark) {
+    .mc-halo {
+      display: inline;
+    }
+  }
+  @scope (.dark) {
+    .mc-halo {
+      display: inline;
+    }
+  }
+  @scope (.light) {
+    .mc-halo {
+      display: none;
+    }
+  }
+  .mc-halo-still {
+    display: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mc-halo-moving {
+      display: none;
+    }
+    .mc-halo-still {
+      display: inline;
+    }
   }
   .mc-fill-solid {
     fill: var(--mc-purple-bold);
