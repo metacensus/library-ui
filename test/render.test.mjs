@@ -273,7 +273,8 @@ test('styles.css prefixes every class and scopes nothing to a site', () => {
     .replace(/\{[^{}]*\}/g, '{}')
   const classes = css.match(/\.[a-z][\w-]*/g) ?? []
   assert.ok(classes.length > 0)
-  for (const c of classes) assert.match(c, /^\.mc-/)
+  // `.dark` and `.light` are tokens.css's scheme overrides, read as it reads them.
+  for (const c of classes) assert.match(c, /^\.(mc-|dark$|light$)/)
   assert.doesNotMatch(css, /marketing-site/)
 })
 
