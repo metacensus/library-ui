@@ -63,10 +63,11 @@ function Haloed({
       <feGaussianBlur stdDeviation={6 * u} result="edge" />
     </>
   )
-  const tint = (slope: number, breathing?: ReactNode) => (
+  /** Floods Soft Lavender through the `mask` result at alpha `slope`. */
+  const tint = (mask: string, slope: number, breathing?: ReactNode) => (
     <>
       <feFlood className="mc-halo-flood" />
-      <feComposite in2="halo" operator="in" />
+      <feComposite in2={mask} operator="in" />
       <feComponentTransfer result="tinted">
         <feFuncA type="linear" slope={slope}>
           {breathing}
@@ -142,6 +143,7 @@ function Haloed({
           <feComposite in2="edge" operator="in" />
           <feComposite in2="water" operator="over" result="halo" />
           {tint(
+            'halo',
             0.48,
             <animate
               attributeName="slope"
@@ -154,10 +156,7 @@ function Haloed({
         </filter>
         <filter id={`${id}-still`} {...region}>
           {edge}
-          <feMerge result="halo">
-            <feMergeNode in="edge" />
-          </feMerge>
-          {tint(0.64)}
+          {tint('edge', 0.64)}
           {rim}
         </filter>
         <g id={id}>{children}</g>
@@ -180,7 +179,11 @@ function Haloed({
 }
 
 /** The marks' shapes, haloed when `auto`. */
-const drawn = (variant: Variant, viewBox: string, shapes: ReactNode) =>
+const drawn = (
+  variant: Variant | 'gradient',
+  viewBox: string,
+  shapes: ReactNode,
+) =>
   variant === 'auto' ? <Haloed viewBox={viewBox}>{shapes}</Haloed> : shapes
 
 /** The primary mark: the six bars of the forest plot. */
@@ -252,13 +255,11 @@ export function MetaCensusLockup({
           </linearGradient>
         </defs>
       )}
-      {gradient
-        ? LOCKUP_PATHS.map((d) => <path key={d} d={d} />)
-        : drawn(
-            variant,
-            LOCKUP_VIEWBOX,
-            LOCKUP_PATHS.map((d) => <path key={d} d={d} />),
-          )}
+      {drawn(
+        variant,
+        LOCKUP_VIEWBOX,
+        LOCKUP_PATHS.map((d) => <path key={d} d={d} />),
+      )}
     </svg>
   )
 }

@@ -143,3 +143,23 @@ test('the halo is not rendered on a light scheme, from the OS or a .light ancest
   await mount(page, '#ffffff', 'light')
   expect(await haloShown(page)).toEqual(MARKS.map(() => false))
 })
+
+test('under reduced motion the still halo replaces the moving one', async ({
+  page,
+}) => {
+  const shown = (layer: string) =>
+    page
+      .locator(`.tested .${layer}`)
+      .evaluateAll((els) =>
+        els.map((el) => getComputedStyle(el).display !== 'none'),
+      )
+  for (const [reducedMotion, still] of [
+    ['no-preference', false],
+    ['reduce', true],
+  ] as const) {
+    await page.emulateMedia({ colorScheme: 'dark', reducedMotion })
+    await mount(page, GROUNDS.page)
+    expect(await shown('mc-halo-moving')).toEqual(MARKS.map(() => !still))
+    expect(await shown('mc-halo-still')).toEqual(MARKS.map(() => still))
+  }
+})
