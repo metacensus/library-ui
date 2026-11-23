@@ -119,7 +119,7 @@ export const advisoryBoard: readonly Steward[] = [
     portrait: 'sharmeen-roy.webp',
   },
   {
-    name: 'Howard L. McLeod, FASCO, FCCP',
+    name: 'Howard L. McLeod, PharmD, FASCO, FCCP',
     role: 'Director, Center for Precision Medicine',
     portrait: 'howard-mcleod.webp',
   },
