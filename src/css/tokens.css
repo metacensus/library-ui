@@ -40,7 +40,7 @@
     color-mix(in srgb, var(--mc-grey-bold) 55%, var(--mc-ground))
   );
   --mc-ink: light-dark(var(--mc-grey-bold), var(--mc-grey-tint));
-  --mc-ink-secondary: var(--mc-grey-mid);
+  --mc-ink-secondary: light-dark(var(--mc-grey-bold), var(--mc-grey-mid));
   --mc-line-input: var(--mc-grey-mid);
   --mc-series: light-dark(var(--mc-blue-bold), var(--mc-blue-mid));
   --mc-ink-accent: light-dark(var(--mc-purple-bold), var(--mc-purple-tint));
