@@ -16,6 +16,8 @@ async function mount(page: Page, ground: string, scheme?: 'light' | 'dark') {
   await page.evaluate(
     ([ground, marks, scheme]) => {
       const { ui, h, mount } = window.harness
+      // As a consumer's <head> does, before the page draws.
+      new Function(ui.displayScript)()
       mount(
         h(
           'main',
