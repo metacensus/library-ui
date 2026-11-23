@@ -60,7 +60,7 @@ import { Header, Nav, Button, displayScript } from '@metacensus/library-ui'
 <Button variant="danger">Delete account</Button>
 ```
 
-`CiteThisPage` takes a `citation` (`title`, `authors` as `Family, Given`, an ISO `date`, `publisher` and `url`) plus `risHref` and `bibHref`, and renders a round `Cite this page` button fixed at the viewport's left edge, vertically centred, like `DisplayControls` at the bottom-left. Hover, focus or a tap opens a panel beside it with the citation as text and a download link to each file. Render it once per page, from the layout, and hydrate it alone (`client:load`); it renders nothing when `citation.url` is empty. The page owns the URL and its permanence. The formatters are pure functions: a page writes the two files at build and links to them.
+`CiteThisPage` takes a `citation` (`title`, `authors` as `Family, Given`, an ISO `date`, `publisher` and `url`) plus `risHref` and `bibHref`, and renders a round `Cite this page` button fixed at the viewport's bottom-right corner, mirroring `DisplayControls` at the bottom-left. Hover, focus or a tap opens a panel above it with the citation as text and a download link to each file. Render it once per page, from the layout, and hydrate it alone (`client:load`); it renders nothing when `citation.url` is empty. The page owns the URL and its permanence. The formatters are pure functions: a page writes the two files at build and links to them.
 
 ```astro
 ---

@@ -12,8 +12,8 @@ type CiteThisPageProps = {
   className?: string
 }
 
-/** A round `Cite this page` button fixed at the viewport's left edge, vertically
- *  centred. Hover, focus or a tap opens a panel beside it with the citation as
+/** A round `Cite this page` button fixed at the viewport's bottom-right
+ *  corner. Hover, focus or a tap opens a panel above it with the citation as
  *  text and a download link to each file; Escape, moving away or a tap
  *  elsewhere closes it. It formats what the page gives it and renders nothing
  *  without a url. Render it once per page, from the layout; hydrate it alone. */
