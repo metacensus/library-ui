@@ -31,5 +31,5 @@ The marks are the primary mark, the wordmark lockup, the wordmark alone, the arr
 - Don't rebuild or re-draw the marks, or re-set the wordmark in another typeface.
 - Don't recolor outside the variants above, and don't use the coral signal color in a mark.
 - Don't rotate (except the arrow), stretch, compress, skew or distort a mark, or alter the spacing between bars.
-- Don't add gradients, shadows or effects.
+- Don't add shadows or effects: a mark is one flat color.
 - Don't place a mark on a busy or low-contrast photograph.
