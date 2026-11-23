@@ -514,6 +514,9 @@ test('RIS ends in `ER  - ` and BibTeX is one @misc entry', () => {
   const bib = ui.formatBibtex(citation)
   assert.equal(bib.match(/^@/gm)?.length, 1)
   assert.match(bib, /howpublished = \{\\url\{/)
+  assert.ok(bib.includes(`url = {${citation.url}}`))
+  assert.ok(bib.includes(`\\url{${citation.url}}`))
+  assert.ok(bib.includes('Cost \\& Impact: 50\\% of the\\_data \\#1'))
   assert.match(ui.formatBibtex({ ...citation, title: '{a}' }), /\\\{a\\\}/)
 })
 

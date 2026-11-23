@@ -53,7 +53,8 @@ function bibKey(c: Citation, year: string | undefined) {
   )
 }
 
-/** The citation as one BibTeX `@misc` entry. */
+/** The citation as one BibTeX `@misc` entry. Text is escaped; the url is
+ *  verbatim, as `url` and `\url` read it literally. */
 export function formatBibtex(c: Citation): string {
   const [, year, month] = DATE.exec(c.date) ?? []
   const fields: [string, string][] = [
@@ -62,8 +63,8 @@ export function formatBibtex(c: Citation): string {
     ['year', year ?? ''],
     ['month', month ? String(Number(month)) : ''],
     ['publisher', tex(c.publisher)],
-    ['url', tex(c.url)],
-    ['howpublished', c.url ? `\\url{${tex(c.url)}}` : ''],
+    ['url', flat(c.url)],
+    ['howpublished', c.url ? `\\url{${flat(c.url)}}` : ''],
   ]
   const body = fields
     .filter(([, value]) => value)
