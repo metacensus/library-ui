@@ -34,7 +34,7 @@ Components render on the server: no router, auth or API client, and no browser g
 
 - Marks: `MetaCensusMark`, `MetaCensusLockup`, `MetaCensusWordmark` (the lockup's letters alone, in `WORDMARK_VIEWBOX`), `MetaCensusArrow`, `LogoArrowMorph`, and the shared geometry, including the lockup's spacing (`LOCKUP_VIEWBOX`, and `LOCKUP_MARK_BOX` for the mark's box within it).
 - Chrome: `Header` (`nav` and `actions` slots, which wrap on a narrow screen; with no `nav`, the `actions` sit at the end of the row), `Footer` (`brand` replaces the linked lockup and its link is the consumer's; `tagline`; link columns as children), `Nav` (`links`).
-- Tools: `cn`, `Button`, `Notice`, `Chip`, the form kit (`Field`, `Label`, `Input`, `Textarea`, `Select`, `Checkbox`, `RadioGroup`, `FieldError`), `useTheme`, `useStill`, `DisplayControls`, `displayScript`.
+- Tools: `cn`, `Button`, `Notice`, `Chip`, `CiteThisPage` with the formatters `formatRis`, `formatBibtex` and `formatCitationText`, the form kit (`Field`, `Label`, `Input`, `Textarea`, `Select`, `Checkbox`, `RadioGroup`, `FieldError`), `useTheme`, `useStill`, `DisplayControls`, `displayScript`.
 - People: `ContributorCard` (a person's photo, name, role, flavor chip and bio, whose bio floats open on hover or focus until Escape), `ContributorFlavorKey`, and `AudienceIcon` for each of `AUDIENCES`, labelled from `AUDIENCE_LABELS`. The floating card is portaled into `<body>`, so import `tokens.css` and set the theme on `:root`, not on a wrapper.
 
 - Marks take `variant`: `auto` (the default: solid on every ground, over a Soft Lavender halo on dark that spills about one mark-height past its box, so its container must not clip it), `solid` or `reversed`. Mark usage is in [TRADEMARKS.md](TRADEMARKS.md).
@@ -57,6 +57,38 @@ import { Header, Nav, Button, displayScript } from '@metacensus/library-ui'
   <Button slot="actions" href="/join">Join</Button>
 </Header>
 <Button variant="danger">Delete account</Button>
+```
+
+`CiteThisPage` takes a `citation` (`title`, `authors` as `Family, Given`, an ISO `date`, `publisher` and `url`) plus `risHref` and `bibHref`, and renders a `Cite this page` disclosure with the citation as text and a download link to each file. It is a `<details>`, so it needs no JS and no `client:` directive, and it renders nothing when `citation.url` is empty. The page owns the URL and its permanence. The formatters are pure functions: a page writes the two files at build and links to them.
+
+```astro
+---
+// src/pages/a-page.astro
+import { CiteThisPage } from '@metacensus/library-ui'
+import { citation } from '../citation'
+---
+<CiteThisPage citation={citation} risHref="/a-page.ris" bibHref="/a-page.bib" />
+```
+
+```ts
+// src/citation.ts
+export const citation = {
+  title: 'A page',
+  authors: ['Doe, Jane', 'Roe, Richard'],
+  date: '2026-11-10',
+  publisher: 'MetaCensus',
+  url: 'https://example.org/a-page',
+}
+```
+
+```ts
+// src/pages/a-page.ris.ts, and the same with formatBibtex in a-page.bib.ts
+import { formatRis } from '@metacensus/library-ui'
+import { citation } from '../citation'
+export const GET = () =>
+  new Response(formatRis(citation), {
+    headers: { 'Content-Type': 'application/x-research-info-systems' },
+  })
 ```
 
 In `.astro` files, pass `Header`'s `nav` and `actions` as named slots; JSX props there fail the build.
