@@ -34,12 +34,8 @@ Components render on the server: no router, auth or API client, and no browser g
 
 - Marks: `MetaCensusMark`, `MetaCensusLockup`, `MetaCensusWordmark` (the lockup's letters alone, in `WORDMARK_VIEWBOX`), `MetaCensusArrow`, `LogoArrowMorph`, and the shared geometry, including the lockup's spacing (`LOCKUP_VIEWBOX`, and `LOCKUP_MARK_BOX` for the mark's box within it).
 - Chrome: `Header` (`nav` and `actions` slots, which wrap on a narrow screen; with no `nav`, the `actions` sit at the end of the row), `Footer` (`brand` replaces the linked lockup and its link is the consumer's; `tagline`; link columns as children), `Nav` (`links`).
-<<<<<<< HEAD
 - Tools: `cn`, `Button`, `Notice`, `Chip`, `CiteThisPage` with the formatters `formatRis`, `formatBibtex` and `formatCitationText`, the form kit (`Field`, `Label`, `Input`, `Textarea`, `Select`, `Checkbox`, `RadioGroup`, `FieldError`), `useTheme`, `ThemeToggle`, `themeScript`.
-=======
-- Tools: `cn`, `Button`, `Notice`, `Chip`, the form kit (`Field`, `Label`, `Input`, `Textarea`, `Select`, `Checkbox`, `RadioGroup`, `FieldError`), `useTheme`, `ThemeToggle`, `themeScript`.
 - People: `ContributorCard` (a person's photo, name, role, flavor chip and bio, whose bio floats open on hover or focus until Escape), `ContributorFlavorKey`, and `AudienceIcon` for each of `AUDIENCES`, labelled from `AUDIENCE_LABELS`. The floating card is portaled into `<body>`, so import `tokens.css` and set the theme on `:root`, not on a wrapper.
->>>>>>> origin/main
 
 - Marks take `variant`: `auto` (the default: solid on every ground, over a Soft Lavender halo on dark that spills about one mark-height past its box, so its container must not clip it), `solid` or `reversed`, and `gradient` on the lockup, which needs a white or very light ground. Mark usage is in [TRADEMARKS.md](TRADEMARKS.md).
 - `LogoArrowMorph` is a pure function of `progress`, 0 the mark and 1 the arrow; whatever places it owns the timing. Keep it horizontal.
