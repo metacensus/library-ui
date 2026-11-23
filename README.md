@@ -37,10 +37,10 @@ Components render on the server: no router, auth or API client, and no browser g
 - Tools: `cn`, `Button`, `Notice`, `Chip`, the form kit (`Field`, `Label`, `Input`, `Textarea`, `Select`, `Checkbox`, `RadioGroup`, `FieldError`), `useTheme`, `useStill`, `DisplayControls`, `displayScript`.
 - People: `ContributorCard` (a person's photo, name, role, flavor chip and bio, whose bio floats open on hover or focus until Escape), `ContributorFlavorKey`, and `AudienceIcon` for each of `AUDIENCES`, labelled from `AUDIENCE_LABELS`. The floating card is portaled into `<body>`, so import `tokens.css` and set the theme on `:root`, not on a wrapper.
 
-- Marks take `variant`: `auto` (the default: solid on every ground, over a Soft Lavender halo on dark that spills about one mark-height past its box, so its container must not clip it), `solid` or `reversed`, and `gradient` on the lockup, which needs a white or very light ground. Mark usage is in [TRADEMARKS.md](TRADEMARKS.md).
+- Marks take `variant`: `auto` (the default: solid on every ground, over a Soft Lavender halo on dark that spills about one mark-height past its box, so its container must not clip it), `solid` or `reversed`. Mark usage is in [TRADEMARKS.md](TRADEMARKS.md).
 - `LogoArrowMorph` is a pure function of `progress`, 0 the mark and 1 the arrow; whatever places it owns the timing. Keep it horizontal.
 - `Nav`'s mobile menu is a checkbox and CSS, so it works without JS.
-- `Button` takes `variant`: `primary` (the default; one per view), `secondary`, `text`, `danger` or `inverse`. A solid Garnet fill marks only a risky action: one that destroys, discards, revokes or cannot be undone. A vote, a filter or a choice between options is not risky. `inverse` is a white fill for the call to action on a `--mc-fill-solid`, `--mc-gradient-hero` or `--mc-night` ground, where `primary` is the ground's own colour or nearly so. Use it on those grounds only: it reads the same in light and dark, and `secondary` inside `.dark` is its quieter sibling.
+- `Button` takes `variant`: `primary` (the default; one per view), `secondary`, `text`, `danger` or `inverse`. A solid Garnet fill marks only a risky action: one that destroys, discards, revokes or cannot be undone. A vote, a filter or a choice between options is not risky. `inverse` is a white fill for the call to action on a `--mc-fill-solid` or `--mc-night` ground, where `primary` is the ground's own colour or nearly so. Use it on those grounds only: it reads the same in light and dark, and `secondary` inside `.dark` is its quieter sibling.
 - `Notice` takes `tone`: `alert` (the default, which reads the `--mc-alert-*` roles), `info` (the blue tint) or `success` (the purple tint fill with the accent ink, since the palette has no green). It renders `role="note"`; pass `role="alert"` for an error.
 - `Button` and `Notice` follow the guidelines' illustrated Actions and Callout patterns. Those patterns do not bind yet: the guidelines have yet to state their shape.
 - Display: inline `displayScript` in `<head>` so the stored choices are on `<html>` before first paint. `DisplayControls` is a round icon button fixed at the viewport's bottom-left corner; hover, focus or a tap opens a panel with the theme (`system`, the OS, `light` or `dark`) and a switch that stops animations. Render it once, from the layout; the panel may cover content on a phone. `useTheme` and `useStill` read and set the same choices. Stopped animations put `still` on `<html>`, whether the viewer chose it or the OS prefers reduced motion, so a page styles its own animations from `:root.still`, as the marks' halo does. With no stored choice the theme and `still` follow the system.
@@ -213,13 +213,6 @@ The default for a chip, pill, badge or callout: the family's tint as the fill, i
 ### Slate Mist
 
 `--mc-grey-mid` is for text demoted in place: copy that stops being the subject and becomes context for what replaced it. Copy that is merely secondary starts in Charcoal, which is `--mc-ink`. On white Slate Mist is about 3.2:1, under the 4.5:1 minimum for small text, so `--mc-ink-secondary` is not for small text there. For an outline, use `--mc-line-input`.
-
-### Gradients
-
-- `--mc-gradient-hero`, `#3B0E75` to `#915EDA`, for hero fills.
-- `--mc-gradient-lockup`, `#37128A` to `#AB82EC`, the lockup's own.
-
-Two stops each; add no third and route neither through an accent family.
 
 ### Shape (provisional)
 

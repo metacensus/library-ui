@@ -180,7 +180,7 @@ function Haloed({
 
 /** The marks' shapes, haloed when `auto`. */
 const drawn = (
-  variant: Variant | 'gradient',
+  variant: Variant,
   viewBox: string,
   shapes: ReactNode,
 ) =>
@@ -218,43 +218,20 @@ export function MetaCensusMark({
   )
 }
 
-/** The mark and wordmark, outlined. `gradient` is the canonical lockup and
- *  needs a white or very light ground. */
+/** The mark and wordmark, outlined. */
 export function MetaCensusLockup({
   variant = 'auto',
   className,
   title = 'MetaCensus',
-}: Omit<MarkProps, 'variant'> & { variant?: Variant | 'gradient' }) {
-  const gradientId = useSvgId('mc-lockup')
-  const gradient = variant === 'gradient'
+}: MarkProps) {
   return (
     <svg
       viewBox={LOCKUP_VIEWBOX}
-      className={cn(
-        'mc-lockup',
-        !gradient && fillClass(variant),
-        className,
-      )}
-      fill={gradient ? `url(#${gradientId})` : undefined}
+      className={cn('mc-lockup', fillClass(variant), className)}
       role="img"
       aria-label={title}
     >
       <title>{title}</title>
-      {gradient && (
-        <defs>
-          <linearGradient
-            id={gradientId}
-            x1="0"
-            x2="158.055"
-            y1="0"
-            y2="0"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop offset="0" stopColor="#37128A" />
-            <stop offset="1" stopColor="#AB82EC" />
-          </linearGradient>
-        </defs>
-      )}
       {drawn(
         variant,
         LOCKUP_VIEWBOX,

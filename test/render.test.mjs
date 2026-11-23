@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -45,7 +45,7 @@ test('marks and chrome render to static HTML with no script', () => {
       null,
       h(ui.Header, { nav, actions: h(ui.Button, { href: '/go' }, 'Go') }),
       h(ui.MetaCensusMark),
-      h(ui.MetaCensusLockup, { variant: 'gradient' }),
+      h(ui.MetaCensusLockup, { variant: 'solid' }),
       h(ui.MetaCensusArrow),
       h(ui.LogoArrowMorph, { progress: 0.5 }),
       h(ui.Footer, { tagline: 'Tag' }, h('a', { href: '/c' }, 'C')),
@@ -376,7 +376,7 @@ test('every role in tokens.css has a Tailwind colour in theme.css and the tailwi
   const roles = [
     ...read('../src/css/tokens.css')
       .split('/* Roles. */')[1]
-      .split('/* Gradients')[0]
+      .split('/* Type')[0]
       .matchAll(/^ {2}--mc-([\w-]+):/gm),
   ].map((m) => m[1])
   const theme = read('../src/css/theme.css')
@@ -529,7 +529,7 @@ test('an inverse Button is white on Purple ink, 3:1 on Purple and night, label 4
       styles,
     )[1],
   )
-  // The hero gradient runs Purple bold to Purple mid: both stops hold 3:1.
+  // Both grounds, and Purple mid, hold 3:1.
   for (const ground of ['fill-solid', 'night', 'purple-mid']) {
     const g = resolve(`var(--mc-${ground})`)
     assert.ok(contrast(fill, g) >= 3, ground)
@@ -583,4 +583,28 @@ test('a ContributorCard renders its name at its level, with or without a bio', (
     renderToString(h(ui.ContributorFlavorKey)),
     /<ul aria-label="Contributor flavors" class="mc-flavor-key">/,
   )
+})
+
+test('no mark and no brand token carries a gradient', () => {
+  const sources = {
+    'src/marks/Marks.tsx': read('../src/marks/Marks.tsx'),
+    'src/css/tokens.css': read('../src/css/tokens.css'),
+    ...Object.fromEntries(
+      readdirSync(join(import.meta.dirname, '../marks'))
+        .filter((f) => f.endsWith('.svg'))
+        .map((f) => [`marks/${f}`, read(`../marks/${f}`)]),
+    ),
+  }
+  for (const [name, text] of Object.entries(sources)) {
+    assert.doesNotMatch(text, /gradient/i, name)
+  }
+  for (const variant of ['auto', 'solid', 'reversed']) {
+    for (const C of [
+      ui.MetaCensusMark,
+      ui.MetaCensusLockup,
+      ui.MetaCensusWordmark,
+    ]) {
+      assert.doesNotMatch(renderToString(h(C, { variant })), /gradient/i)
+    }
+  }
 })
