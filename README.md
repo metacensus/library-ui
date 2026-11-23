@@ -2,7 +2,7 @@
 
 MetaCensus's brand layer and a small set of UI tools, as one ESM React package (React 18 peer).
 
-The first release's contents are tracked in this repository's issues. So far it ships the marks, the brand tokens, the components and the PDF anchor format.
+The first release's contents are tracked in this repository's issues. So far it ships the marks, the brand tokens, the components, the shared layout and the PDF anchor format.
 
 ## Use
 
@@ -60,6 +60,37 @@ import { Header, Nav, Button, displayScript } from '@metacensus/library-ui'
 ```
 
 In `.astro` files, pass `Header`'s `nav` and `actions` as named slots; JSX props there fail the build.
+
+## Layout
+
+The shared layout is `Header.astro` and `Footer.astro`, Astro components that take no props: they read the site links (`@metacensus/library-ui/site-links`) and the [organization's facts](#organization-facts). A site's layout composes them with the display controls and passes only what is its own. The React `Header` and `Footer` above are separate components, not these.
+
+```astro
+---
+import Header from '@metacensus/library-ui/Header.astro'
+import Footer from '@metacensus/library-ui/Footer.astro'
+---
+<Header><slot name="section-bar" /></Header>
+<Footer />
+```
+
+[`browser/site`](browser/site) is the whole layout, which the browser suite builds. Put `Header` directly under `body`: the sticky section bar depends on it.
+
+- `Header`'s slot renders after the main bar, outside it, so a page's `<nav slot="section-bar" class="mc-section-bar">` sticks at the viewport's top while the main bar scrolls away.
+- Site links: `HEADER_LINKS`, `SECTION_LINKS`, `FOOTER_COLUMNS`, `LOGIN_PATH`, `JOIN_PATH` and `LEGAL_PATH`.
+
+### Route inventory
+
+`@metacensus/library-ui/inventory/routes.mjs` is an Astro integration that writes `ROUTES.md` at build: every page, its audience and purpose from `src/inventory/routes.json`, and the links and forms in its built HTML. The build fails when a route has no entry or an entry has no route. `deniedLinks` takes a function from a page's hrefs to those it may not link to, and fails the build on any.
+
+```js
+// astro.config.mjs
+import routeInventory from '@metacensus/library-ui/inventory/routes.mjs'
+
+export default defineConfig({
+  integrations: [routeInventory({ deniedLinks })],
+})
+```
 
 ## Organization facts
 

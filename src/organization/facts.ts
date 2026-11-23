@@ -4,6 +4,7 @@ export interface Organization {
   url: string
   logo: string
   email: string
+  copyrightYears: string
   people: readonly { name: string; role: string }[]
 }
 
@@ -12,5 +13,6 @@ export const organization: Organization = {
   url: 'https://www.metacensus.org',
   logo: 'https://raw.githubusercontent.com/metacensus/library-ui/main/marks/mark.svg',
   email: 'brand@metacensus.io',
+  copyrightYears: '2023–2026',
   people: [],
 }

@@ -99,6 +99,52 @@
     gap: 0.75rem;
   }
 
+  .mc-main-bar {
+    z-index: 40;
+    flex-wrap: nowrap;
+    gap: 1rem;
+  }
+  .mc-main-bar .mc-nav {
+    margin-inline: auto;
+  }
+  .mc-main-bar .mc-header-home {
+    margin-inline-end: 0;
+  }
+  @media (width < 48rem) {
+    .mc-main-bar {
+      padding-block: 0.5rem;
+    }
+    .mc-main-bar .mc-header-home {
+      flex: none;
+      width: calc(1.5rem * 27 / 23);
+      overflow: hidden;
+    }
+  }
+
+  /* The page's section bar: scrolls with the page until it reaches the viewport's top. */
+  .mc-section-bar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    justify-content: safe center;
+    gap: clamp(0.75rem, 3vw, 1.5rem);
+    padding: 0.625rem 1rem;
+    background: var(--mc-ground);
+    border-bottom: 1px solid var(--mc-hairline);
+    font-size: 0.875rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow-x: auto;
+  }
+  .mc-section-bar a {
+    color: var(--mc-ink);
+    text-decoration: none;
+  }
+  .mc-section-bar a:hover {
+    color: var(--mc-ink-accent);
+  }
+
   /* Nav: a checkbox opens the list on a narrow screen, with no JS. */
   .mc-nav {
     position: relative;
@@ -185,6 +231,14 @@
     display: flex;
     flex-wrap: wrap;
     gap: 2rem;
+  }
+  .mc-footer-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .mc-footer a {
+    color: var(--mc-ink);
   }
 
   /* Button. */

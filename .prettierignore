@@ -3,3 +3,6 @@ node_modules
 package-lock.json
 marks
 .github/ISSUE_TEMPLATE
+browser/site/dist
+browser/site/.astro
+browser/site/ROUTES.md
