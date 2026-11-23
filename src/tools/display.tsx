@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useSyncExternalStore } from 'react'
 import { cn } from './cn.js'
+import { Float } from './Float.js'
 import { Checkbox, RadioGroup } from './form.js'
 
 /** `system` follows the OS; `light` and `dark` are the viewer's override. */
@@ -87,46 +88,13 @@ const THEME_OPTIONS: { value: Theme; label: string }[] = [
 export function DisplayControls({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme()
   const { still, setStill } = useStill()
-  const [open, setOpen] = useState(false)
-  const button = useRef<HTMLButtonElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const close = (e: PointerEvent) => {
-      if (!(e.target as Element).closest('.mc-display')) setOpen(false)
-    }
-    document.addEventListener('pointerdown', close)
-    return () => document.removeEventListener('pointerdown', close)
-  }, [open])
-
   return (
-    <div
+    <Float
       className={cn('mc-display', className)}
-      onPointerEnter={(e) => e.pointerType === 'mouse' && setOpen(true)}
-      onPointerLeave={(e) => e.pointerType === 'mouse' && setOpen(false)}
-      onFocus={() => setOpen(true)}
-      // Safari does not focus a control it is clicked on: no `relatedTarget`
-      // means focus went nowhere a page can name, not that it left.
-      onBlur={(e) => {
-        if (e.relatedTarget && !e.currentTarget.contains(e.relatedTarget))
-          setOpen(false)
-      }}
-      onKeyDown={(e) => {
-        if (e.key !== 'Escape') return
-        button.current?.focus()
-        setOpen(false)
-      }}
-    >
-      <button
-        ref={button}
-        type="button"
-        className="mc-display-button"
-        aria-label="Display"
-        aria-expanded={open}
-        onClick={() => setOpen(true)}
-      >
-        {/* Lucide's `sliders-horizontal`, under the ISC license in
-            LICENSES/ISC.txt. */}
+      label="Display"
+      icon={
+        /* Lucide's `sliders-horizontal`, under the ISC license in
+           LICENSES/ISC.txt. */
         <svg
           viewBox="0 0 24 24"
           fill="none"
@@ -139,21 +107,20 @@ export function DisplayControls({ className }: { className?: string }) {
           <path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3" />
           <path d="M14 2v4M8 10v4M16 18v4" />
         </svg>
-      </button>
-      <div className="mc-display-panel" hidden={!open}>
-        <RadioGroup
-          legend="Theme"
-          name="mc-display-theme"
-          options={THEME_OPTIONS}
-          value={theme}
-          onChange={(value) => setTheme(value as Theme)}
-        />
-        <Checkbox
-          label="Stop animations"
-          checked={still}
-          onChange={(e) => setStill(e.target.checked)}
-        />
-      </div>
-    </div>
+      }
+    >
+      <RadioGroup
+        legend="Theme"
+        name="mc-display-theme"
+        options={THEME_OPTIONS}
+        value={theme}
+        onChange={(value) => setTheme(value as Theme)}
+      />
+      <Checkbox
+        label="Stop animations"
+        checked={still}
+        onChange={(e) => setStill(e.target.checked)}
+      />
+    </Float>
   )
 }

@@ -74,7 +74,7 @@ test('the panel stays inside a 320 px viewport', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 })
   await mount(page)
   await page.getByRole('button', { name: 'Display' }).focus()
-  const box = (await page.locator('.mc-display-panel').boundingBox())!
+  const box = (await page.locator('.mc-float-panel').boundingBox())!
   expect(box.x).toBeGreaterThanOrEqual(0)
   expect(box.x + box.width).toBeLessThanOrEqual(320)
   expect(box.y).toBeGreaterThanOrEqual(0)

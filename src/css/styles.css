@@ -407,24 +407,29 @@
     color: var(--mc-tint-blue-ink);
   }
 
-  /* CiteThisPage: a disclosure on the card role. */
+  /* CiteThisPage: a floating button at the left edge, vertically centred, with
+     its panel to the right. */
   .mc-cite {
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--mc-hairline);
-    border-radius: var(--mc-radius);
-    background: var(--mc-card);
-    color: var(--mc-ink);
+    inset-block-start: 50%;
+    inset-inline-start: 1rem;
+    transform: translateY(-50%);
   }
-  .mc-cite-summary {
-    cursor: pointer;
-    font-weight: 500;
+  .mc-cite .mc-float-panel {
+    inset-block-start: 50%;
+    inset-inline-start: calc(100% + 0.5rem);
+    transform: translateY(-50%);
+    width: 18rem;
+    max-width: calc(100vw - 5.5rem);
   }
-  .mc-cite-summary:focus-visible {
-    outline: 2px solid var(--mc-line-accent);
-    outline-offset: 2px;
+  .mc-cite .mc-float-panel::before {
+    inset-block: 0;
+    inset-inline-start: -0.5rem;
+    inset-inline-end: auto;
+    width: 0.5rem;
+    height: auto;
   }
   .mc-cite-text {
-    margin: 0.75rem 0;
+    margin: 0;
     overflow-wrap: anywhere;
   }
   .mc-cite-downloads {
@@ -484,15 +489,14 @@
     font-size: 0.875rem;
   }
 
-  /* Display controls: a round icon button fixed at the viewport's bottom-left
-     corner, with a panel above it. */
-  .mc-display {
+  /* Floating controls: a round icon button fixed to the viewport, with a panel
+     beside it. DisplayControls sits at the bottom-left corner, the panel above;
+     CiteThisPage sets its own place. */
+  .mc-float {
     position: fixed;
-    inset-block-end: 1rem;
-    inset-inline-start: 1rem;
     z-index: 40;
   }
-  .mc-display-button {
+  .mc-float-button {
     display: grid;
     place-items: center;
     width: 2.75rem;
@@ -505,17 +509,13 @@
     box-shadow: 0 2px 8px color-mix(in srgb, var(--mc-ink) 20%, transparent);
     cursor: pointer;
   }
-  .mc-display-button svg {
+  .mc-float-button svg {
     width: 1.25rem;
     height: 1.25rem;
   }
-  .mc-display-panel {
+  .mc-float-panel {
     position: absolute;
-    inset-block-end: calc(100% + 0.5rem);
-    inset-inline-start: 0;
     box-sizing: border-box;
-    width: 14rem;
-    max-width: calc(100vw - 2rem);
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -527,20 +527,30 @@
     box-shadow: 0 2px 8px color-mix(in srgb, var(--mc-ink) 20%, transparent);
   }
   /* Bridges the gap to the button so the pointer crosses it without leaving. */
-  .mc-display-panel::before {
+  .mc-float-panel::before {
     content: '';
     position: absolute;
     inset-inline: 0;
     inset-block-start: 100%;
     height: 0.5rem;
   }
-  .mc-display-panel[hidden] {
+  .mc-float-panel[hidden] {
     display: none;
   }
-  .mc-display-button:focus-visible,
-  .mc-display-panel input:focus-visible {
+  .mc-float-button:focus-visible,
+  .mc-float-panel input:focus-visible {
     outline: 2px solid var(--mc-ink-accent);
     outline-offset: 2px;
+  }
+  .mc-display {
+    inset-block-end: 1rem;
+    inset-inline-start: 1rem;
+  }
+  .mc-display .mc-float-panel {
+    inset-block-end: calc(100% + 0.5rem);
+    inset-inline-start: 0;
+    width: 14rem;
+    max-width: calc(100vw - 2rem);
   }
   /* The footer's last line stays clear of the button at the page's end. */
   :root:has(.mc-display) .mc-footer {

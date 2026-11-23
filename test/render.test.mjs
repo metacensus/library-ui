@@ -185,7 +185,7 @@ test('DisplayControls renders its button and a closed panel of theme and motion'
     /<button[^>]*aria-label="Display"[^>]*aria-expanded="false"/,
   )
   assert.match(html, /<svg[^>]*aria-hidden="true"/)
-  assert.match(html, /class="mc-display-panel" hidden/)
+  assert.match(html, /class="mc-float-panel" hidden/)
   assert.match(html, /<input[^>]*checked=""[^>]*value="system"/)
   assert.match(html, /Stop animations/)
 })
@@ -585,12 +585,15 @@ test('RIS ends in `ER  - ` and BibTeX is one @misc entry', () => {
   assert.match(ui.formatBibtex({ ...citation, title: '{a}' }), /\\\{a\\\}/)
 })
 
-test('CiteThisPage is a details with the citation and both downloads', () => {
+test('CiteThisPage is a labelled button with the citation and both downloads', () => {
   const html = renderToString(
     h(ui.CiteThisPage, { citation, risHref: '/c.ris', bibHref: '/c.bib' }),
   )
-  assert.match(html, /^<details class="mc-cite"/)
-  assert.match(html, /<summary[^>]*>Cite this page<\/summary>/)
+  assert.match(html, /^<div class="mc-float mc-cite"/)
+  assert.match(
+    html,
+    /<button[^>]*aria-label="Cite this page"[^>]*aria-expanded="false"/,
+  )
   assert.ok(html.includes('href="/c.ris"'))
   assert.ok(html.includes('href="/c.bib"'))
   assert.ok(html.includes('Doe, Jane and Roe, Richard (2026-11-10)'))
