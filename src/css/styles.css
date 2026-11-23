@@ -348,6 +348,7 @@
     color: var(--mc-ink);
     box-shadow: var(--mc-shadow);
   }
+  /* A layered `display` beats the UA's hiding of a closed dialog. */
   .mc-dialog:not([open]) {
     display: none;
   }

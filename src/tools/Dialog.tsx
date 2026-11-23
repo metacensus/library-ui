@@ -26,7 +26,7 @@ type DialogProps = Naming &
 
 /** A modal on the native `<dialog>`: the browser gives the inert background,
  *  Escape and the top layer, and this returns focus to the opener. `open` is
- *  the parent's truth. A `title` is the visible heading and names the dialog;
+ *  the parent's truth: set it false in `onClose`. A `title` is the visible heading and names the dialog;
  *  without one, `label` does. */
 export function Dialog({
   open,
@@ -50,6 +50,7 @@ export function Dialog({
       opener.current = document.activeElement
       dialog.showModal()
     } else if (!open && dialog.open) {
+      // The close event this raises is the parent's own doing; `closed` skips it.
       closing.current = true
       dialog.close()
     }
@@ -81,7 +82,7 @@ export function Dialog({
       {...props}
       ref={ref}
       className={cn('mc-dialog', className)}
-      aria-labelledby={title ? headingId : undefined}
+      aria-labelledby={title !== undefined ? headingId : undefined}
       aria-label={label}
       onClose={closed}
       onPointerDown={(e) => (pressedOutside.current = outside(e))}
@@ -91,7 +92,7 @@ export function Dialog({
       }}
     >
       <div className="mc-dialog-header">
-        {title && (
+        {title !== undefined && (
           <h2 id={headingId} className="mc-dialog-title">
             {title}
           </h2>

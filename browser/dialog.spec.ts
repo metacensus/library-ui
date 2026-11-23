@@ -31,6 +31,7 @@ async function show(page: Page, opts: Opts) {
           ),
         ),
       )
+    ;(window as unknown as { rerender: typeof render }).rerender = render
     render(opts.open)
   }, opts)
 }
@@ -91,10 +92,9 @@ test('a press on the backdrop closes it; a drag out from inside does not', async
 
 test('parent closing it does not call onClose', async ({ page }) => {
   await show(page, { open: true, title: 'Note' })
-  await page.evaluate(() => {
-    const { ui, h, mount } = window.harness
-    mount(h(ui.Dialog, { open: false, title: 'Note', onClose() {} }))
-  })
+  await page.evaluate(() =>
+    (window as unknown as { rerender: (o: boolean) => void }).rerender(false),
+  )
   await expect(dialog(page)).toBeHidden()
   await expect.poll(() => calls(page)).toBe(0)
 })
