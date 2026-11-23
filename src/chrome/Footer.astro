@@ -1,0 +1,26 @@
+---
+import { MetaCensusLockup } from '@metacensus/library-ui'
+import { organization } from '@metacensus/library-ui/organization'
+import { FOOTER_COLUMNS } from '@metacensus/library-ui/site-links'
+---
+
+<footer class="mc-footer">
+  <div class="mc-footer-brand">
+    <a href="/"><MetaCensusLockup /></a>
+    <p class="mc-footer-note">
+      {`© ${organization.copyrightYears} ${organization.name}.`}
+      <slot />
+    </p>
+  </div>
+  <div class="mc-footer-columns">
+    {
+      FOOTER_COLUMNS.map((column) => (
+        <nav class="mc-footer-column" aria-label={`Footer: ${column.label}`}>
+          {column.links.map((link) => (
+            <a href={link.href}>{link.label}</a>
+          ))}
+        </nav>
+      ))
+    }
+  </div>
+</footer>

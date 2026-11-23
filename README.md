@@ -2,7 +2,7 @@
 
 MetaCensus's brand layer and a small set of UI tools, as one ESM React package (React 18 peer).
 
-The first release's contents are tracked in this repository's issues. So far it ships the marks, the brand tokens, the components and the PDF anchor format.
+The first release's contents are tracked in this repository's issues. So far it ships the marks, the brand tokens, the components, the shared layout and the PDF anchor format.
 
 ## Use
 
@@ -22,7 +22,7 @@ Marks are importable as `@metacensus/library-ui/marks/mark.svg` and its siblings
 
 `styles.css` is plain CSS, every class `mc-` prefixed and none scoped to a site, reading the roles in `tokens.css`. No Tailwind is needed. Set `font-family: var(--mc-font-sans)` on your page.
 
-`styles.css` declares `@layer mc`, so its rules sit in a cascade layer and lose to any unlayered rule of yours. `tokens.css` stays unlayered: custom properties do not compete with utilities. With Tailwind 4, put this line first so utilities beat the components, and `className="p-0"` or `"hidden"` on `Button`, `Header`, `Nav` or `DisplayControls` wins without `!important`:
+`styles.css` declares `@layer mc`, so its rules sit in a cascade layer and lose to any unlayered rule of yours. `tokens.css` stays unlayered: custom properties do not compete with utilities. With Tailwind 4, put this line first so utilities beat the components, and `className="p-0"` or `"hidden"` on `Button`, `Button` or `DisplayControls` wins without `!important`:
 
 ```css
 @layer theme, base, mc, components, utilities;
@@ -30,16 +30,14 @@ Marks are importable as `@metacensus/library-ui/marks/mark.svg` and its siblings
 
 Any unlayered rule of yours now beats the package's, whatever its specificity: a bare `button { ... }` beats `.mc-button`, which it did not before. That is how your own CSS wins. To choose the layer's name, import it as `@import '@metacensus/library-ui/styles.css' layer(brand);`, which nests the rules as `brand.mc`, and name `brand` in the ordering line in place of `mc`.
 
-Components render on the server: no router, auth or API client, and no browser global while rendering. In Astro, add `@astrojs/react`; the marks and chrome render at build with no `client:` directive and ship no JS. Only `DisplayControls` and `ContributorCard` need one, as `client:visible`.
+Components render on the server: no router, auth or API client, and no browser global while rendering. In Astro, add `@astrojs/react`; the marks render at build with no `client:` directive and ship no JS. Only `DisplayControls` and `ContributorCard` need one, as `client:visible`.
 
 - Marks: `MetaCensusMark`, `MetaCensusLockup`, `MetaCensusWordmark` (the lockup's letters alone, in `WORDMARK_VIEWBOX`), `MetaCensusArrow`, `LogoArrowMorph`, and the shared geometry, including the lockup's spacing (`LOCKUP_VIEWBOX`, and `LOCKUP_MARK_BOX` for the mark's box within it).
-- Chrome: `Header` (`nav` and `actions` slots, which wrap on a narrow screen; with no `nav`, the `actions` sit at the end of the row), `Footer` (`brand` replaces the linked lockup and its link is the consumer's; `tagline`; link columns as children), `Nav` (`links`).
 - Tools: `cn`, `Button`, `Notice`, `Chip`, the form kit (`Field`, `Label`, `Input`, `Textarea`, `Select`, `Checkbox`, `RadioGroup`, `FieldError`), `useTheme`, `useStill`, `DisplayControls`, `displayScript`.
 - People: `ContributorCard` (a person's photo, name, role, flavor chip and bio, whose bio floats open on hover or focus until Escape), `ContributorFlavorKey`, and `AudienceIcon` for each of `AUDIENCES`, labelled from `AUDIENCE_LABELS`. The floating card is portaled into `<body>`, so import `tokens.css` and set the theme on `:root`, not on a wrapper.
 
 - Marks take `variant`: `auto` (the default: solid on every ground, over a Soft Lavender halo on dark that spills about one mark-height past its box, so its container must not clip it), `solid` or `reversed`, and `gradient` on the lockup, which needs a white or very light ground. Mark usage is in [TRADEMARKS.md](TRADEMARKS.md).
 - `LogoArrowMorph` is a pure function of `progress`, 0 the mark and 1 the arrow; whatever places it owns the timing. Keep it horizontal.
-- `Nav`'s mobile menu is a checkbox and CSS, so it works without JS.
 - `Button` takes `variant`: `primary` (the default; one per view), `secondary`, `text`, `danger` or `inverse`. A solid Garnet fill marks only a risky action: one that destroys, discards, revokes or cannot be undone. A vote, a filter or a choice between options is not risky. `inverse` is a white fill for the call to action on a `--mc-fill-solid`, `--mc-gradient-hero` or `--mc-night` ground, where `primary` is the ground's own colour or nearly so. Use it on those grounds only: it reads the same in light and dark, and `secondary` inside `.dark` is its quieter sibling.
 - `Notice` takes `tone`: `alert` (the default, which reads the `--mc-alert-*` roles), `info` (the blue tint) or `success` (the purple tint fill with the accent ink, since the palette has no green). It renders `role="note"`; pass `role="alert"` for an error.
 - `Button` and `Notice` follow the guidelines' illustrated Actions and Callout patterns. Those patterns do not bind yet: the guidelines have yet to state their shape.
@@ -47,19 +45,58 @@ Components render on the server: no router, auth or API client, and no browser g
 
 ```astro
 ---
-import { Header, Nav, Button, displayScript } from '@metacensus/library-ui'
+import { Button, displayScript } from '@metacensus/library-ui'
 ---
 <head>
   <script is:inline set:html={displayScript} />
 </head>
-<Header>
-  <Nav slot="nav" links={[{ href: '/research', label: 'Research' }]} />
-  <Button slot="actions" href="/join">Join</Button>
-</Header>
 <Button variant="danger">Delete account</Button>
 ```
 
-In `.astro` files, pass `Header`'s `nav` and `actions` as named slots; JSX props there fail the build.
+## Layout
+
+`Header` and `Footer` are Astro components that take no props: they read the site links (`@metacensus/library-ui/site-links`) and the [organization's facts](#organization-facts), so every site carries the same ones. A site's layout composes them with the display controls and passes only what is its own.
+
+```astro
+---
+// src/layouts/Base.astro
+import Header from '@metacensus/library-ui/Header.astro'
+import Footer from '@metacensus/library-ui/Footer.astro'
+import { DisplayControls, displayScript } from '@metacensus/library-ui'
+import '@metacensus/library-ui/tokens.css'
+import '@metacensus/library-ui/styles.css'
+---
+<html lang="en">
+  <head>
+    <script is:inline set:html={displayScript} />
+  </head>
+  <body>
+    <Header><slot name="section-bar" /></Header>
+    <main><slot /></main>
+    <Footer />
+    <DisplayControls client:visible />
+  </body>
+</html>
+```
+
+A page fills the slot with its own section bar, as `<nav slot="section-bar" class="mc-section-bar" aria-label="Sections">`. The main bar scrolls away with the page and the section bar sticks at the viewport's top. Below 48rem the main bar stays one row, the brand cropped to its mark and the links in a Menu.
+
+- `Header`: the brand at the left; Why, Research and Blog centred, the current page marked; Log in and Join us at the right, Join us standing down on its own page. Its default slot renders after the bar, outside it.
+- `Footer`: the brand, the copyright from the organization's `copyrightYears`, and the link columns, among them the legal section once and GitHub. Its default slot adds to the copyright line, for a site's own notice.
+- Site links: `HEADER_LINKS`, `SECTION_LINKS`, `FOOTER_COLUMNS`, `LOGIN_PATH`, `JOIN_PATH` and `LEGAL_PATH`. `SECTION_LINKS` suit a front page's section bar. Paths are the public site's.
+
+### Route inventory
+
+`@metacensus/library-ui/inventory/routes.mjs` is an Astro integration that writes `ROUTES.md` at build: every page, its audience and purpose from `src/inventory/routes.json`, and the links and forms in its built HTML. The build fails when a route has no entry or an entry has no route. `deniedLinks` takes a function from a page's hrefs to those it may not link to, and fails the build on any.
+
+```js
+// astro.config.mjs
+import routeInventory from '@metacensus/library-ui/inventory/routes.mjs'
+
+export default defineConfig({
+  integrations: [routeInventory({ deniedLinks })],
+})
+```
 
 ## Organization facts
 

@@ -10,7 +10,8 @@ export default defineConfig({
     { name: 'webkit', use: devices['Desktop Safari'] },
   ],
   webServer: {
-    command: `node ../scripts/pdf-corpus.mjs && node serve.mjs ${port}`,
+    // The next port serves the layout components composed in an Astro site, as the README shows.
+    command: `node ../scripts/pdf-corpus.mjs && astro build --root site && node serve.mjs ${port}`,
     url: `http://localhost:${port}`,
   },
 })

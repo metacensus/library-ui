@@ -31,47 +31,18 @@ for (const name of [
 const ui = await import('../dist/index.js')
 const read = (path) => readFileSync(join(import.meta.dirname, path), 'utf8')
 
-const nav = h(ui.Nav, {
-  links: [
-    { href: '/a', label: 'A', current: true },
-    { href: '/b', label: 'B' },
-  ],
-})
-
-test('marks and chrome render to static HTML with no script', () => {
+test('marks render to static HTML with no script', () => {
   const html = renderToString(
     h(
       'div',
       null,
-      h(ui.Header, { nav, actions: h(ui.Button, { href: '/go' }, 'Go') }),
       h(ui.MetaCensusMark),
       h(ui.MetaCensusLockup, { variant: 'gradient' }),
       h(ui.MetaCensusArrow),
       h(ui.LogoArrowMorph, { progress: 0.5 }),
-      h(ui.Footer, { tagline: 'Tag' }, h('a', { href: '/c' }, 'C')),
     ),
   )
   assert.doesNotMatch(html, /<script|<text/)
-  assert.match(html, /<header[^>]*>.*<nav[^>]*aria-label="Main"/s)
-  assert.match(html, /aria-current="page"/)
-  assert.match(html, /<footer/)
-})
-
-test('Footer renders a given brand in place of the default lockup', () => {
-  const lockup = /<svg[^>]*aria-label="MetaCensus"/
-  const given = renderToString(
-    h(ui.Footer, { brand: h('b', { id: 'mine' }, 'Mine') }),
-  )
-  assert.match(given, /<div class="mc-footer-brand"><b id="mine">Mine<\/b>/)
-  assert.doesNotMatch(given, lockup)
-  assert.match(renderToString(h(ui.Footer)), lockup)
-})
-
-test('the nav disclosure is a checkbox its label controls', () => {
-  const html = renderToString(nav)
-  const id = /<input id="([^"]+)" type="checkbox"/.exec(html)?.[1]
-  assert.ok(id)
-  assert.ok(html.includes(`for="${id}"`))
 })
 
 test('the tools render on the server', () => {
@@ -364,11 +335,9 @@ test('the tailwind3 preset builds bg-mc-card with and without a modifier', () =>
   assert.ok(css.includes('color-mix(in srgb, var(--mc-card) 50%, transparent)'))
 })
 
-test('styles.css wraps the Header and keeps control labels on one line', () => {
+test('styles.css keeps control labels on one line', () => {
   const declares = (selector, declaration) =>
     new RegExp(`\\n  \\.${selector} \\{[^}]*${declaration}`).test(styles)
-  assert.ok(declares('mc-header', 'flex-wrap: wrap'))
-  assert.ok(declares('mc-header-actions', 'flex-wrap: wrap'))
   assert.ok(declares('mc-button', 'white-space: nowrap'))
 })
 

@@ -1,0 +1,34 @@
+---
+import Footer from '@metacensus/library-ui/Footer.astro'
+import Header from '@metacensus/library-ui/Header.astro'
+import { DisplayControls, displayScript } from '@metacensus/library-ui'
+import '@metacensus/library-ui/fonts.css'
+import '@metacensus/library-ui/tokens.css'
+import '@metacensus/library-ui/styles.css'
+
+const { title } = Astro.props
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <script is:inline set:html={displayScript} />
+  </head>
+  <body>
+    <Header><slot name="section-bar" /></Header>
+    <main><slot /></main>
+    <Footer />
+    <DisplayControls client:visible />
+  </body>
+</html>
+
+<style is:global>
+  body {
+    margin: 0;
+    background: var(--mc-ground);
+    color: var(--mc-ink);
+    font-family: var(--mc-font-sans);
+  }
+</style>

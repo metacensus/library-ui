@@ -77,26 +77,60 @@
     stroke: var(--mc-purple-mid);
   }
 
-  /* Header. */
+  /* Header: one row, the brand at the start, the links centred, the actions at the end. */
   .mc-header {
     position: relative;
+    z-index: 40;
     display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
     align-items: center;
     gap: 0.75rem 1rem;
     padding: 1rem;
     background: var(--mc-ground);
     border-bottom: 1px solid var(--mc-hairline);
   }
-  .mc-header-home {
-    margin-inline-end: auto;
+  .mc-header .mc-nav {
+    margin-inline: auto;
   }
   .mc-header-actions {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     gap: 0.75rem;
+  }
+  /* Below 48rem the brand is cropped to its mark, which is LOCKUP_MARK_BOX's
+     27 units on the lockup's 23, and the padding tightens. */
+  @media (width < 48rem) {
+    .mc-header {
+      padding-block: 0.5rem;
+    }
+    .mc-header-home {
+      flex: none;
+      width: calc(1.5rem * 27 / 23);
+      overflow: hidden;
+    }
+  }
+
+  /* The page's section bar: scrolls with the page until it reaches the viewport's top. */
+  .mc-section-bar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    justify-content: safe center;
+    gap: clamp(0.75rem, 3vw, 1.5rem);
+    padding: 0.625rem 1rem;
+    background: var(--mc-ground);
+    border-bottom: 1px solid var(--mc-hairline);
+    font-size: 0.875rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow-x: auto;
+  }
+  .mc-section-bar a {
+    color: var(--mc-ink);
+    text-decoration: none;
+  }
+  .mc-section-bar a:hover {
+    color: var(--mc-ink-accent);
   }
 
   /* Nav: a checkbox opens the list on a narrow screen, with no JS. */
@@ -178,13 +212,21 @@
     background: var(--mc-surface);
     color: var(--mc-ink);
   }
-  .mc-footer-tagline {
+  .mc-footer-note {
     margin: 0.75rem 0 0;
   }
   .mc-footer-columns {
     display: flex;
     flex-wrap: wrap;
     gap: 2rem;
+  }
+  .mc-footer-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .mc-footer a {
+    color: var(--mc-ink);
   }
 
   /* Button. */
