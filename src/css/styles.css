@@ -17,7 +17,43 @@
     width: auto;
   }
   .mc-fill-auto {
-    fill: light-dark(var(--mc-purple-bold), var(--mc-white));
+    fill: var(--mc-purple-bold);
+    overflow: visible;
+  }
+  /* The halo under an `auto` mark, rendered only on a dark ground: the OS
+     setting, or the nearest `.dark` or `.light` ancestor, as tokens.css
+     resolves the scheme. */
+  .mc-halo-flood {
+    flood-color: var(--mc-purple-tint);
+  }
+  .mc-halo {
+    display: none;
+  }
+  @media (prefers-color-scheme: dark) {
+    .mc-halo {
+      display: inline;
+    }
+  }
+  @scope (.dark) {
+    .mc-halo {
+      display: inline;
+    }
+  }
+  @scope (.light) {
+    .mc-halo {
+      display: none;
+    }
+  }
+  .mc-halo-still {
+    display: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mc-halo-moving {
+      display: none;
+    }
+    .mc-halo-still {
+      display: inline;
+    }
   }
   .mc-fill-solid {
     fill: var(--mc-purple-bold);
@@ -348,19 +384,244 @@
     font-size: 0.875rem;
   }
 
-  /* Theme toggle. */
+  /* Theme toggle: a round icon button fixed at the viewport's bottom corner
+     that widens to show the theme's name on hover or focus. */
   .mc-theme-toggle {
-    padding: 0.375rem 0.75rem;
-    border: 1px solid var(--mc-ink);
-    border-radius: var(--mc-radius);
-    background: transparent;
+    position: fixed;
+    inset-block-end: 1rem;
+    inset-inline-end: 1rem;
+    z-index: 40;
+    display: inline-flex;
+    align-items: center;
+    min-width: 2.75rem;
+    height: 2.75rem;
+    padding: 0 0.6875rem;
+    border: 1px solid var(--mc-hairline);
+    border-radius: 999px;
+    background: var(--mc-card);
     color: var(--mc-ink);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--mc-ink) 20%, transparent);
     font: inherit;
+    font-weight: 500;
     white-space: nowrap;
     cursor: pointer;
+  }
+  .mc-theme-toggle svg {
+    flex: none;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .mc-theme-toggle-name {
+    max-width: 0;
+    overflow: hidden;
+    transition:
+      max-width 200ms ease,
+      margin 200ms ease;
+  }
+  .mc-theme-toggle:hover .mc-theme-toggle-name,
+  .mc-theme-toggle:focus-visible .mc-theme-toggle-name {
+    max-width: 4rem;
+    margin-inline: 0.5rem 0.25rem;
   }
   .mc-theme-toggle:focus-visible {
     outline: 2px solid var(--mc-ink-accent);
     outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mc-theme-toggle-name {
+      transition: none;
+    }
+  }
+  /* The footer's last line stays clear of the toggle at the page's end. */
+  :root:has(.mc-theme-toggle) .mc-footer {
+    padding-block-end: 5rem;
+  }
+
+  /* Audience icon. */
+  .mc-audience-icon {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 1.5em;
+    height: 1.5em;
+    vertical-align: middle;
+  }
+
+  /* Contributor card: a fixed footprint the floating card grows out of. */
+  .mc-contributor-shell {
+    position: relative;
+    flex-shrink: 0;
+    width: 18rem;
+    height: 12rem;
+  }
+  .mc-contributor {
+    --mc-contributor-shade: color-mix(in srgb, black 10%, transparent);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 1rem;
+    border: 1px solid color-mix(in oklab, var(--mc-hairline) 70%, transparent);
+    border-radius: 0.75rem;
+    background: var(--mc-card);
+    box-shadow: 0 1px 2px 0 color-mix(in srgb, black 5%, transparent);
+    color: var(--mc-ink);
+  }
+  .mc-contributor-with-bio {
+    justify-content: normal;
+    gap: 0.5rem;
+  }
+  .mc-contributor-resting {
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: 10;
+    height: 100%;
+    overflow: hidden;
+  }
+  .mc-contributor-floating {
+    position: fixed;
+    min-height: 12rem;
+    border-color: color-mix(in oklab, var(--mc-ink) 40%, transparent);
+    box-shadow:
+      0 20px 25px -5px var(--mc-contributor-shade),
+      0 8px 10px -6px var(--mc-contributor-shade);
+  }
+  .mc-contributor-flavor {
+    position: absolute;
+    top: 0.625rem;
+    right: 0.625rem;
+  }
+  .mc-contributor-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .mc-contributor-photo {
+    flex-shrink: 0;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 9999px;
+    box-shadow: 0 0 0 1px var(--mc-hairline);
+    object-fit: cover;
+  }
+  .mc-contributor-initials {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--mc-surface);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1rem;
+    text-transform: uppercase;
+  }
+  .mc-contributor-names {
+    min-width: 0;
+  }
+  /* Clear of the flavor chip in the corner. */
+  .mc-contributor-names-1 {
+    padding-right: 1.75rem;
+  }
+  .mc-contributor-names-2 {
+    padding-right: 3.5rem;
+  }
+  .mc-contributor-name {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+  }
+  .mc-contributor-name a {
+    color: inherit;
+    text-decoration: none;
+    text-underline-offset: 4px;
+  }
+  .mc-contributor-name a:hover {
+    text-decoration: underline;
+  }
+  .mc-contributor-role {
+    margin: 0.125rem 0 0;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.375;
+  }
+  .mc-contributor-title {
+    color: var(--mc-ink-accent);
+    font-weight: 600;
+  }
+  .mc-contributor-bio {
+    font-size: 0.78125rem;
+    line-height: 1.375;
+  }
+  .mc-contributor-bio > p {
+    margin: 0;
+  }
+  .mc-contributor-resting .mc-contributor-bio > p {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 6;
+  }
+  .mc-contributor-bio a {
+    color: inherit;
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* Flavor chips: a family's tint, the pair drawn as one object. */
+  .mc-flavor {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 2px solid currentColor;
+    border-radius: 0.5rem;
+  }
+  .mc-flavor-engineering {
+    background: var(--mc-tint-red-fill);
+    color: var(--mc-tint-red-ink);
+  }
+  .mc-flavor-quantitative {
+    background: var(--mc-tint-blue-fill);
+    color: var(--mc-tint-blue-ink);
+  }
+  .mc-flavor-pair {
+    display: flex;
+  }
+  .mc-flavor-pair > :first-child {
+    border-right: 0;
+    border-radius: 0.5rem 0 0 0.5rem;
+  }
+  .mc-flavor-pair > :last-child {
+    border-left: 0;
+    border-radius: 0 0.5rem 0.5rem 0;
+  }
+  .mc-flavor-glyph {
+    width: 1rem;
+    height: 1rem;
+  }
+  .mc-flavor-sigma {
+    font-size: 0.84375rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.025em;
+  }
+  .mc-flavor-key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--mc-ink);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+  .mc-flavor-key li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 }

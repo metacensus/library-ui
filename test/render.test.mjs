@@ -8,6 +8,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { createElement as h } from 'react'
+// Loaded before the guards below: ContributorCard's portal imports it, and
+// react-dom probes for `window` as it loads, not as it renders.
+import 'react-dom'
 import { renderToString } from 'react-dom/server'
 
 // A browser global read while rendering throws.
@@ -114,6 +117,29 @@ test('the tools render on the server', () => {
     assert.ok(html.includes(c), c)
 })
 
+test('PdfPage renders a busy frame on the server, whole or cropped', async () => {
+  const { PdfPage } = await import('../dist/pdf/index.js')
+  const source = { url: '/paper.pdf', sha256: '0'.repeat(64) }
+  const whole = renderToString(h(PdfPage, { source, page: 3 }))
+  assert.match(whole, /aria-busy="true"/)
+  assert.match(whole, /role="group" aria-label="Page 3"/)
+  const crop = {
+    source: { sha256: '0'.repeat(64) },
+    selector: [
+      {
+        type: 'PdfQuadSelector',
+        quads: [{ page: 3, points: [0, 0, 1, 0, 1, 1, 0, 1] }],
+      },
+    ],
+  }
+  const cropped = renderToString(
+    h(PdfPage, { source, page: 3, crop, label: 'the passage' }),
+  )
+  assert.match(cropped, /aria-busy="true"/)
+  assert.match(cropped, /role="img" aria-label="the passage"/)
+  assert.match(cropped, /aria-expanded="false"/)
+})
+
 test('a Notice takes a tone: info adds its class and tone stays off the DOM', () => {
   const plain = renderToString(h(ui.Notice, null, 'Body'))
   assert.ok(!plain.includes('mc-notice-info'))
@@ -134,6 +160,13 @@ test('a Field wires its label, control and error together', () => {
   assert.ok(html.includes(`for="${id}"`))
   assert.ok(html.includes(`aria-describedby="${id}-error"`))
   assert.ok(html.includes('aria-invalid="true"'))
+})
+
+test('ThemeToggle renders the system icon, its name, and what a click does', () => {
+  const html = renderToString(h(ui.ThemeToggle))
+  assert.match(html, /aria-label="Theme: System\. Switch to Light"/)
+  assert.match(html, /<svg[^>]*aria-hidden="true"/)
+  assert.match(html, /<span class="mc-theme-toggle-name">System<\/span>/)
 })
 
 test('the head script puts a stored theme on the root and never throws', () => {
@@ -240,7 +273,8 @@ test('styles.css prefixes every class and scopes nothing to a site', () => {
     .replace(/\{[^{}]*\}/g, '{}')
   const classes = css.match(/\.[a-z][\w-]*/g) ?? []
   assert.ok(classes.length > 0)
-  for (const c of classes) assert.match(c, /^\.mc-/)
+  // `.dark` and `.light` are tokens.css's scheme overrides, read as it reads them.
+  for (const c of classes) assert.match(c, /^\.(mc-|dark$|light$)/)
   assert.doesNotMatch(css, /marketing-site/)
 })
 
@@ -538,4 +572,50 @@ test('CiteThisPage is a details with the citation and both downloads', () => {
     }),
   )
   assert.equal(none, '')
+})
+
+test('each audience icon is a labelled image with a mask of its own', () => {
+  assert.deepEqual(Object.keys(ui.AUDIENCE_LABELS), [...ui.AUDIENCES])
+  const html = renderToString(
+    h(
+      'div',
+      null,
+      ui.AUDIENCES.map((audience) =>
+        h(ui.AudienceIcon, { audience, key: audience }),
+      ),
+      h(ui.AudienceIcon, { audience: 'funders' }),
+    ),
+  )
+  for (const label of Object.values(ui.AUDIENCE_LABELS))
+    assert.ok(html.includes(`role="img" aria-label="${label}"`), label)
+  const ids = [...html.matchAll(/<mask id="([^"]+)"/g)].map((m) => m[1])
+  assert.equal(ids.length, ui.AUDIENCES.length + 1)
+  assert.equal(new Set(ids).size, ids.length)
+  for (const id of ids) assert.ok(html.includes(`mask="url(#${id})"`), id)
+})
+
+test('a ContributorCard renders its name at its level, with or without a bio', () => {
+  const card = (props, bio) =>
+    renderToString(
+      h(ui.ContributorCard, { name: 'Ada Example', level: 3, ...props }, bio),
+    )
+  const full = card(
+    { href: '/ada', role: 'Engineer', metacensusTitle: true, flavor: 'both' },
+    h('p', null, 'Bio'),
+  )
+  assert.match(
+    full,
+    /<h3 class="mc-contributor-name"><a href="\/ada">Ada Example<\/a><\/h3>/,
+  )
+  assert.match(full, /mc-contributor-role mc-contributor-title/)
+  assert.match(full, /aria-label="Engineering and Quantitative science"/)
+  assert.match(full, /mc-contributor-with-bio/)
+  assert.match(full, /mc-contributor-initials" aria-hidden="true">AE</)
+  const bare = card({ image: '/ada.webp' })
+  assert.match(bare, /<img src="\/ada.webp" alt=""/)
+  assert.doesNotMatch(bare, /mc-contributor-bio|mc-flavor/)
+  assert.match(
+    renderToString(h(ui.ContributorFlavorKey)),
+    /<ul aria-label="Contributor flavors" class="mc-flavor-key">/,
+  )
 })

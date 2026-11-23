@@ -1,0 +1,223 @@
+import type { PageViewport, PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { Button } from '../tools/Button.js'
+import { cn } from '../tools/cn.js'
+import { open } from './document.js'
+import type {
+  PdfAnchor,
+  PdfError,
+  PdfMark,
+  PdfPoint,
+  PdfResolution,
+  PdfSource,
+} from './index.js'
+import { toView } from './marks.js'
+import {
+  Failed,
+  PageView,
+  pageName,
+  useAttempt,
+  useDrawn,
+  useNeared,
+  type View,
+} from './page.js'
+import { quadsOn } from './resolve.js'
+import { useSelect } from './select.js'
+
+type Props = {
+  source: PdfSource
+  /** 1-based. */
+  page: number
+  /** Shows this anchor's quads on `page`, plus 30 pt; absent, the whole page. */
+  crop?: PdfAnchor
+  /** The accessible name; absent, the page number. */
+  label?: string
+  marks?: PdfMark[]
+  /** A mark id, drawn heavier. */
+  current?: string
+  onResolve?: (resolutions: PdfResolution[]) => void
+  /** Makes marks buttons. */
+  onMarkActivate?: (id: string) => void
+  onPageClick?: (point: PdfPoint) => void
+  /** A text selection with both ends in this component, once ended, as an
+   *  anchor; null once it is gone. */
+  onSelect?: (anchor: PdfAnchor | null) => void
+  onError?: (error: PdfError) => void
+  className?: string
+}
+
+type Loaded = {
+  document: PDFDocumentProxy
+  page: PDFPageProxy
+  sha256: string
+  printed?: string
+  /** False once released, when its renders end in errors that are no failure. */
+  live: () => boolean
+}
+
+/** One page of a PDF, cropped to a passage or whole, with marks on it. */
+export function PdfPage({
+  source,
+  page,
+  crop,
+  label,
+  marks = [],
+  current,
+  onResolve,
+  onMarkActivate,
+  onPageClick,
+  onSelect,
+  onError,
+  className,
+}: Props) {
+  const [host, setHost] = useState<HTMLDivElement | null>(null)
+  const id = useId()
+  const [width, setWidth] = useState(0)
+  const neared = useNeared(host)
+  const [loaded, setLoaded] = useState<Loaded>()
+  const { attempt, error, fail, retry } = useAttempt(onError)
+  const [expanded, setExpanded] = useState(false)
+  const toggled = useRef(false)
+
+  const failOpen = (error: unknown) => loaded?.live() && fail(error)
+
+  useEffect(() => {
+    if (!host) return
+    const observer = new ResizeObserver(([entry]) =>
+      setWidth(entry!.contentRect.width),
+    )
+    observer.observe(host)
+    return () => observer.disconnect()
+  }, [host])
+
+  // Callers pass new objects each render, so effects key on their contents.
+  const file = 'url' in source ? source.url : source.data
+  useEffect(() => {
+    if (!neared) return
+    const lease = open(source)
+    let live = true
+    Promise.all([lease.document, lease.sha256])
+      .then(async ([document, sha256]) => {
+        const [shown, labels] = await Promise.all([
+          document.getPage(page),
+          document.getPageLabels(),
+        ])
+        if (live)
+          setLoaded({
+            document,
+            page: shown,
+            sha256,
+            printed: labels?.[page - 1],
+            live: () => live,
+          })
+      })
+      .catch((error) => live && fail(error))
+    return () => {
+      live = false
+      lease.release()
+      setLoaded(undefined)
+    }
+  }, [neared, file, source.sha256, page, attempt])
+
+  const drawn = useDrawn(marks, loaded, onResolve, fail)
+  useSelect(host, loaded, onSelect, fail)
+  const shown = crop && !expanded ? quadsOn(crop, page) : []
+  const cropped = shown.length > 0
+  const view = useMemo(
+    () => (loaded && width > 0 ? fit(loaded.page, width, shown) : undefined),
+    [loaded, width, JSON.stringify(shown)],
+  )
+
+  useEffect(() => {
+    if (!toggled.current || !view) return
+    toggled.current = false
+    host!.querySelector('.mc-pdf-mark')?.scrollIntoView({ block: 'nearest' })
+  }, [view])
+
+  return (
+    <div
+      ref={setHost}
+      className={cn('mc-pdf-page', className)}
+      aria-busy={!loaded && !error}
+    >
+      {error ? (
+        <Failed onRetry={retry} />
+      ) : (
+        <>
+          <div id={id}>
+            <PageView
+              view={view}
+              role={cropped ? 'img' : 'group'}
+              name={
+                label ??
+                (cropped ? `Page ${page}` : pageName(page, loaded?.printed))
+              }
+              marks={drawn ?? []}
+              current={current}
+              onMarkActivate={onMarkActivate}
+              onPageClick={onPageClick}
+              onError={failOpen}
+            />
+          </div>
+          {crop && (
+            <Button
+              variant="text"
+              aria-expanded={expanded}
+              aria-controls={id}
+              onClick={() => {
+                toggled.current = true
+                setExpanded(!expanded)
+              }}
+            >
+              Whole page
+            </Button>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+const margin = 30
+const maxScale = 2
+
+function fit(page: PDFPageProxy, width: number, quads: number[][]): View {
+  const whole = page.getViewport({ scale: 1 })
+  const [left, top, right, bottom] = quads.length
+    ? around(page, whole, quads)
+    : [0, 0, whole.width, whole.height]
+  const scale = Math.min(maxScale, width / (right - left))
+  return {
+    page,
+    viewport: page.getViewport({
+      scale,
+      offsetX: -left * scale,
+      offsetY: -top * scale,
+    }),
+    width: (right - left) * scale,
+    height: (bottom - top) * scale,
+  }
+}
+
+function around(
+  page: PDFPageProxy,
+  whole: PageViewport,
+  quads: number[][],
+): [left: number, top: number, right: number, bottom: number] {
+  const [x0, y0, x1, y1] = page.view as [number, number, number, number]
+  const xs = quads.flatMap((q) => q.filter((_, i) => i % 2 === 0))
+  const ys = quads.flatMap((q) => q.filter((_, i) => i % 2 === 1))
+  const l = Math.max(x0, Math.min(...xs) - margin)
+  const b = Math.max(y0, Math.min(...ys) - margin)
+  const r = Math.min(x1, Math.max(...xs) + margin)
+  const t = Math.min(y1, Math.max(...ys) + margin)
+  const corners = toView(whole, [l, b, r, b, r, t, l, t])
+  const cxs = corners.map(([x]) => x)
+  const cys = corners.map(([, y]) => y)
+  return [
+    Math.min(...cxs),
+    Math.min(...cys),
+    Math.max(...cxs),
+    Math.max(...cys),
+  ]
+}

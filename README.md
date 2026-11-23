@@ -2,7 +2,7 @@
 
 MetaCensus's brand layer and a small set of UI tools, as one ESM React package (React 18 peer).
 
-The first release's contents are tracked in this repository's issues. So far it ships the marks, the brand tokens and the components.
+The first release's contents are tracked in this repository's issues. So far it ships the marks, the brand tokens, the components and the PDF anchor format.
 
 ## Use
 
@@ -30,19 +30,24 @@ Marks are importable as `@metacensus/library-ui/marks/mark.svg` and its siblings
 
 Any unlayered rule of yours now beats the package's, whatever its specificity: a bare `button { ... }` beats `.mc-button`, which it did not before. That is how your own CSS wins. To choose the layer's name, import it as `@import '@metacensus/library-ui/styles.css' layer(brand);`, which nests the rules as `brand.mc`, and name `brand` in the ordering line in place of `mc`.
 
-Components render on the server: no router, auth or API client, and no browser global while rendering. In Astro, add `@astrojs/react`; the marks and chrome render at build with no `client:` directive and ship no JS. Only `ThemeToggle` needs one, as `client:visible`.
+Components render on the server: no router, auth or API client, and no browser global while rendering. In Astro, add `@astrojs/react`; the marks and chrome render at build with no `client:` directive and ship no JS. Only `ThemeToggle` and `ContributorCard` need one, as `client:visible`.
 
 - Marks: `MetaCensusMark`, `MetaCensusLockup`, `MetaCensusWordmark` (the lockup's letters alone, in `WORDMARK_VIEWBOX`), `MetaCensusArrow`, `LogoArrowMorph`, and the shared geometry, including the lockup's spacing (`LOCKUP_VIEWBOX`, and `LOCKUP_MARK_BOX` for the mark's box within it).
 - Chrome: `Header` (`nav` and `actions` slots, which wrap on a narrow screen; with no `nav`, the `actions` sit at the end of the row), `Footer` (`brand` replaces the linked lockup and its link is the consumer's; `tagline`; link columns as children), `Nav` (`links`).
+<<<<<<< HEAD
 - Tools: `cn`, `Button`, `Notice`, `Chip`, `CiteThisPage` with the formatters `formatRis`, `formatBibtex` and `formatCitationText`, the form kit (`Field`, `Label`, `Input`, `Textarea`, `Select`, `Checkbox`, `RadioGroup`, `FieldError`), `useTheme`, `ThemeToggle`, `themeScript`.
+=======
+- Tools: `cn`, `Button`, `Notice`, `Chip`, the form kit (`Field`, `Label`, `Input`, `Textarea`, `Select`, `Checkbox`, `RadioGroup`, `FieldError`), `useTheme`, `ThemeToggle`, `themeScript`.
+- People: `ContributorCard` (a person's photo, name, role, flavor chip and bio, whose bio floats open on hover or focus until Escape), `ContributorFlavorKey`, and `AudienceIcon` for each of `AUDIENCES`, labelled from `AUDIENCE_LABELS`. The floating card is portaled into `<body>`, so import `tokens.css` and set the theme on `:root`, not on a wrapper.
+>>>>>>> origin/main
 
-- Marks take `variant`: `auto` (the default: solid on light, reversed on dark), `solid` or `reversed`, and `gradient` on the lockup, which needs a white or very light ground. Mark usage is in [TRADEMARKS.md](TRADEMARKS.md).
+- Marks take `variant`: `auto` (the default: solid on every ground, over a Soft Lavender halo on dark that spills about one mark-height past its box, so its container must not clip it), `solid` or `reversed`, and `gradient` on the lockup, which needs a white or very light ground. Mark usage is in [TRADEMARKS.md](TRADEMARKS.md).
 - `LogoArrowMorph` is a pure function of `progress`, 0 the mark and 1 the arrow; whatever places it owns the timing. Keep it horizontal.
 - `Nav`'s mobile menu is a checkbox and CSS, so it works without JS.
 - `Button` takes `variant`: `primary` (the default; one per view), `secondary`, `text`, `danger` or `inverse`. A solid Garnet fill marks only a risky action: one that destroys, discards, revokes or cannot be undone. A vote, a filter or a choice between options is not risky. `inverse` is a white fill for the call to action on a `--mc-fill-solid`, `--mc-gradient-hero` or `--mc-night` ground, where `primary` is the ground's own colour or nearly so. Use it on those grounds only: it reads the same in light and dark, and `secondary` inside `.dark` is its quieter sibling.
 - `Notice` takes `tone`: `alert` (the default, which reads the `--mc-alert-*` roles), `info` (the blue tint) or `success` (the purple tint fill with the accent ink, since the palette has no green). It renders `role="note"`; pass `role="alert"` for an error.
 - `Button` and `Notice` follow the guidelines' illustrated Actions and Callout patterns. Those patterns do not bind yet: the guidelines have yet to state their shape.
-- Theme: inline `themeScript` in `<head>` so a stored override is on `<html>` before first paint. `useTheme` and `ThemeToggle` read and set it: `system` (the OS), `light` or `dark`.
+- Theme: inline `themeScript` in `<head>` so a stored override is on `<html>` before first paint. `useTheme` and `ThemeToggle` read and set it: `system` (the OS), `light` or `dark`. `ThemeToggle` is a round icon button fixed at the viewport's bottom corner, so render it once, from the layout.
 
 ```astro
 ---
@@ -91,6 +96,16 @@ export const GET = () =>
 ```
 
 In `.astro` files, pass `Header`'s `nav` and `actions` as named slots; JSX props there fail the build.
+
+## PDF
+
+`@metacensus/library-ui/pdf` is a separate entry point, so the main one never loads pdf.js.
+
+- `<PdfPage source={…} page={12} crop={anchor} label="…" marks={[…]} />` draws one page, cropped to an anchor's quads plus 30 pt or whole, with marks that stay on their glyphs at every width and DPR. Import `@metacensus/library-ui/pdf.css` beside `tokens.css`.
+- `<PdfReader source={…} marks={[…]} target={{ mark: id }} jump={n} className="h-full" />` scrolls the whole document inside its frame, which sets its height: a toolbar, zoom from 50% to 400% of fit width, and the reader's place kept through zoom and resize. `target` scrolls on load, when it changes, and when `jump` does.
+- Print shows only the pages drawn as it starts, those near the view; the rest print as empty frames.
+- A stored mark is a `PdfAnchor`, whose JSON Schema is `@metacensus/library-ui/pdf/anchor.schema.json`, and `quadFromRect` and `quadsFromFractions` convert user-space rects and fractions of the displayed page into its quads.
+- Serve `dist/pdf-assets/` (the worker, wasm, cmaps, standard fonts and the ICC profiles for CMYK pages) from your own origin, copied again on each upgrade since pdf.js refuses a worker of another version, and name its URL once per page with `configurePdf({ assets: '/pdfjs/' })`. The page's CSP needs `script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'`, and no `unsafe-eval`.
 
 ## Brand tokens
 
@@ -184,6 +199,7 @@ Both are the public site's values. The guidelines state no shape yet; the pendin
 
 ```shell
 make deps
+make browsers
 make check
 ```
 

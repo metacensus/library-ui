@@ -19,10 +19,17 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./pdf": {
+      "types": "./dist/pdf/index.d.ts",
+      "default": "./dist/pdf/index.js"
+    },
+    "./pdf/anchor.schema.json": "./src/pdf/anchor.schema.json",
+    "./pdf-assets/*": "./dist/pdf-assets/*",
     "./tokens.css": "./src/css/tokens.css",
     "./fonts.css": "./src/css/fonts.css",
     "./styles.css": "./src/css/styles.css",
     "./theme.css": "./src/css/theme.css",
+    "./pdf.css": "./src/css/pdf.css",
     "./tailwind3": "./src/css/tailwind3.cjs",
     "./marks/*.svg": "./marks/*.svg",
     "./package.json": "./package.json"
@@ -31,26 +38,39 @@
     "dist",
     "marks",
     "src/css",
+    "src/pdf/anchor.schema.json",
     "LICENSE",
-    "TRADEMARKS.md"
+    "TRADEMARKS.md",
+    "LICENSES"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/pdf-assets.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format:check": "prettier --check .",
-    "test": "node --test"
+    "test": "node --test",
+    "test:browser": "playwright test -c browser"
   },
   "dependencies": {
-    "@fontsource/inter": "^5.3.0"
+    "@fontsource/inter": "^5.3.0",
+    "pdfjs-dist": "6.5.438"
   },
   "peerDependencies": {
-    "react": "^18.3.1"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@eslint/js": "^9.39.0",
+    "@pdf-lib/fontkit": "^1.1.1",
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^24.19.2",
     "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.7",
+    "ajv": "^8.20.0",
+    "esbuild": "^0.28.2",
     "eslint": "^9.39.0",
+    "pdf-lib": "^1.17.1",
     "prettier": "^3.6.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
