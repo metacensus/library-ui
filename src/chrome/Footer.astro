@@ -13,8 +13,11 @@ import { FOOTER_COLUMNS } from '@metacensus/library-ui/site-links'
   </div>
   <div class="mc-footer-columns">
     {
-      FOOTER_COLUMNS.map((column) => (
-        <nav class="mc-footer-column" aria-label={`Footer: ${column.label}`}>
+      FOOTER_COLUMNS.map((column, i) => (
+        <nav class="mc-footer-column" aria-labelledby={`mc-footer-column-${i}`}>
+          <h2 class="mc-footer-heading" id={`mc-footer-column-${i}`}>
+            {column.label}
+          </h2>
           {column.links.map((link) => (
             <a href={link.href}>{link.label}</a>
           ))}

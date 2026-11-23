@@ -81,6 +81,28 @@ test('the footer links the legal section once and the organization on GitHub', a
   await expect(footer).toContainText('© 2023–2026 MetaCensus.')
 })
 
+test('the footer lays its labelled columns in equal tracks that fit at 375 px', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const columns = page.locator('footer.mc-footer nav.mc-footer-column')
+  await expect(columns.getByRole('heading')).toHaveText([
+    'Explore',
+    'Get involved',
+    'About',
+  ])
+  const widths = (await columns.evaluateAll((els) =>
+    els.map((el) => el.getBoundingClientRect().width),
+  )) as number[]
+  expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(1)
+  await page.setViewportSize({ width: 375, height: 800 })
+  const scroll = await page.evaluate(() => ({
+    width: document.documentElement.scrollWidth,
+    client: document.documentElement.clientWidth,
+  }))
+  expect(scroll.width).toBeLessThanOrEqual(scroll.client)
+})
+
 test('the layout has no accessibility violations, light or dark', async ({
   page,
 }) => {

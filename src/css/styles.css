@@ -227,15 +227,24 @@
   .mc-footer-tagline {
     margin: 0.75rem 0 0;
   }
+  /* The columns share the row beside the brand in equal tracks, and wrap to as many as fit under it. */
   .mc-footer-columns {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    flex: 1 1 24rem;
+    min-width: 0;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
     gap: 2rem;
+    max-width: 40rem;
   }
   .mc-footer-column {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+  }
+  .mc-footer-heading {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
   }
   .mc-footer a {
     color: var(--mc-ink);
