@@ -16,4 +16,4 @@ Applied AI Engineer: Michael K.B. Ford
 /* SITE */
 Organization: MetaCensus
 URL: https://www.metacensus.org
-Contact: brand@metacensus.io
+Contact: contact@metacensus.org
