@@ -407,26 +407,17 @@
     color: var(--mc-tint-blue-ink);
   }
 
-  /* CiteThisPage: a floating button at the left edge, vertically centred, with
-     its panel to the right. */
+  /* CiteThisPage: a floating button at the bottom-right corner, mirroring the
+     display controls, with its panel above and growing leftward. */
   .mc-cite {
-    inset-block-start: 50%;
-    inset-inline-start: 1rem;
-    transform: translateY(-50%);
+    inset-block-end: 1rem;
+    inset-inline-end: 1rem;
   }
   .mc-cite .mc-float-panel {
-    inset-block-start: 50%;
-    inset-inline-start: calc(100% + 0.5rem);
-    transform: translateY(-50%);
+    inset-block-end: calc(100% + 0.5rem);
+    inset-inline-end: 0;
     width: 18rem;
-    max-width: calc(100vw - 5.5rem);
-  }
-  .mc-cite .mc-float-panel::before {
-    inset-block: 0;
-    inset-inline-start: -0.5rem;
-    inset-inline-end: auto;
-    width: 0.5rem;
-    height: auto;
+    max-width: calc(100vw - 2rem);
   }
   .mc-cite-text {
     margin: 0;
@@ -491,7 +482,7 @@
 
   /* Floating controls: a round icon button fixed to the viewport, with a panel
      beside it. DisplayControls sits at the bottom-left corner, the panel above;
-     CiteThisPage sets its own place. */
+     CiteThisPage sits at the bottom-right. */
   .mc-float {
     position: fixed;
     z-index: 40;

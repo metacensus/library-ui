@@ -34,15 +34,15 @@ test.beforeEach(async ({ page }) => {
 const button = (page: Page) =>
   page.getByRole('button', { name: 'Cite this page' })
 
-test('the button sits at the left edge, vertically centred, 2.75rem round, panel closed', async ({
+test('the button sits at the bottom-right corner, 2.75rem round, panel closed', async ({
   page,
 }) => {
   const box = (await button(page).boundingBox())!
   const view = page.viewportSize()!
-  expect(box.x).toBeLessThan(24)
   expect(box.width).toBe(44)
   expect(box.height).toBe(44)
-  expect(Math.abs(box.y + box.height / 2 - view.height / 2)).toBeLessThan(2)
+  expect(view.width - (box.x + box.width)).toBe(16)
+  expect(view.height - (box.y + box.height)).toBe(16)
   await expect(page.getByRole('link', { name: 'Download RIS' })).toBeHidden()
 })
 
@@ -75,20 +75,17 @@ test('hover, focus or a tap opens the panel; Escape, leaving or a tap elsewhere 
   await expect(ris).toBeHidden()
 })
 
-test('the open panel sits beside the button, inside a 320 px viewport, clear of the display button', async ({
+test('the open panel sits above the button, inside a 320 px viewport', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 568 })
   await button(page).focus()
   const panel = (await page.locator('.mc-cite .mc-float-panel').boundingBox())!
   const btn = (await button(page).boundingBox())!
-  const display = (await page
-    .getByRole('button', { name: 'Display' })
-    .boundingBox())!
-  expect(panel.x).toBeGreaterThanOrEqual(btn.x + btn.width)
+  expect(panel.x).toBeGreaterThanOrEqual(0)
   expect(panel.x + panel.width).toBeLessThanOrEqual(320)
   expect(panel.y).toBeGreaterThanOrEqual(0)
-  expect(panel.y + panel.height).toBeLessThanOrEqual(display.y)
+  expect(panel.y + panel.height).toBeLessThanOrEqual(btn.y)
 })
 
 test('the open panel has no accessibility violations in light and dark', async ({
