@@ -1,0 +1,30 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "MetaCensus",
+  "url": "https://www.metacensus.io",
+  "logo": "https://raw.githubusercontent.com/metacensus/library-ui/main/marks/mark.svg",
+  "email": "brand@metacensus.io",
+  "employee": [
+    {
+      "@type": "Person",
+      "name": "Ryan Nelson",
+      "jobTitle": "Executive Director"
+    },
+    {
+      "@type": "Person",
+      "name": "Jacob Barzee",
+      "jobTitle": "Director of Engineering"
+    },
+    {
+      "@type": "Person",
+      "name": "Erik Forsman",
+      "jobTitle": "Founding Engineer"
+    },
+    {
+      "@type": "Person",
+      "name": "Michael K.B. Ford",
+      "jobTitle": "Applied AI Engineer"
+    }
+  ]
+}

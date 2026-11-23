@@ -1,0 +1,10 @@
+/* TEAM */
+Executive Director: Ryan Nelson
+Director of Engineering: Jacob Barzee
+Founding Engineer: Erik Forsman
+Applied AI Engineer: Michael K.B. Ford
+
+/* SITE */
+Organization: MetaCensus
+URL: https://www.metacensus.io
+Contact: brand@metacensus.io

@@ -19,6 +19,11 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./organization": {
+      "types": "./dist/organization/index.d.ts",
+      "default": "./dist/organization/index.js"
+    },
+    "./OrganizationJsonLd.astro": "./src/organization/OrganizationJsonLd.astro",
     "./pdf": {
       "types": "./dist/pdf/index.d.ts",
       "default": "./dist/pdf/index.js"
@@ -38,6 +43,7 @@
     "dist",
     "marks",
     "src/css",
+    "src/organization/OrganizationJsonLd.astro",
     "src/pdf/anchor.schema.json",
     "LICENSE",
     "TRADEMARKS.md",
