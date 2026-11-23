@@ -333,6 +333,43 @@
     font-weight: 700;
   }
 
+  /* Dialog: the native modal; the UA centres it. */
+  .mc-dialog {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    box-sizing: border-box;
+    max-width: calc(100vw - 2rem);
+    max-height: calc(100dvh - 2rem);
+    padding: 1rem;
+    border: 1px solid var(--mc-hairline);
+    border-radius: var(--mc-radius);
+    background: var(--mc-card);
+    color: var(--mc-ink);
+    box-shadow: var(--mc-shadow);
+  }
+  .mc-dialog:not([open]) {
+    display: none;
+  }
+  .mc-dialog::backdrop {
+    background: color-mix(in srgb, var(--mc-night) 60%, transparent);
+  }
+  .mc-dialog-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+  .mc-dialog-title {
+    margin: 0;
+    font-size: 1.25rem;
+  }
+  .mc-dialog-body {
+    min-height: 0;
+    overflow: auto;
+  }
+
   /* Chip: the tint fill, with ink and border from the bold step. */
   .mc-chip {
     display: inline-block;

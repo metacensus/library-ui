@@ -67,6 +67,22 @@ test('Footer renders a given brand in place of the default lockup', () => {
   assert.match(renderToString(h(ui.Footer)), lockup)
 })
 
+test('a Dialog renders closed on the server, named by its title or label', () => {
+  const titled = renderToString(
+    h(ui.Dialog, { open: true, onClose() {}, title: 'Note' }, 'Body'),
+  )
+  const id = /<h2 id="([^"]+)"/.exec(titled)?.[1]
+  assert.ok(id)
+  assert.ok(titled.includes(`aria-labelledby="${id}"`))
+  assert.doesNotMatch(titled, /<dialog[^>]* open/)
+  assert.match(
+    renderToString(
+      h(ui.Dialog, { open: false, onClose() {}, label: 'Source' }),
+    ),
+    /<dialog[^>]*aria-label="Source"/,
+  )
+})
+
 test('the nav disclosure is a checkbox its label controls', () => {
   const html = renderToString(nav)
   const id = /<input id="([^"]+)" type="checkbox"/.exec(html)?.[1]

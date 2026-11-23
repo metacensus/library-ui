@@ -12,6 +12,7 @@ export { Nav, type NavLink } from './chrome/Nav.js'
 export { Button } from './tools/Button.js'
 export { Chip } from './tools/Chip.js'
 export { cn } from './tools/cn.js'
+export { Dialog } from './tools/Dialog.js'
 export {
   formatBibtex,
   formatCitationText,
