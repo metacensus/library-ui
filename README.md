@@ -110,7 +110,8 @@ import Footer from '@metacensus/library-ui/Footer.astro'
 [`browser/site`](browser/site) is the whole layout, which the browser suite builds. Put `Header` directly under `body`: the sticky section bar depends on it.
 
 - `Header`'s slot renders after the main bar, outside it, so a page's `<nav slot="section-bar" class="mc-section-bar">` sticks at the viewport's top while the main bar scrolls away.
-- Site links: `HEADER_LINKS`, `SECTION_LINKS`, `FOOTER_COLUMNS`, `LOGIN_PATH`, `JOIN_PATH` and `LEGAL_PATH`.
+- Site links: `HEADER_LINKS`, `SECTION_LINKS`, `FOOTER_COLUMNS`, `JOIN_PATH` and `LEGAL_PATH`.
+- The log-in route is reached by typing `/log-in`; no component links to it.
 
 ### Route inventory
 

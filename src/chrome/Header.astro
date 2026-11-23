@@ -1,10 +1,6 @@
 ---
 import { Button, MetaCensusLockup } from '@metacensus/library-ui'
-import {
-  HEADER_LINKS,
-  JOIN_PATH,
-  LOGIN_PATH,
-} from '@metacensus/library-ui/site-links'
+import { HEADER_LINKS, JOIN_PATH } from '@metacensus/library-ui/site-links'
 
 const path = Astro.url.pathname.replace(/\/?$/, '/')
 const current = (href: string) =>
@@ -33,7 +29,6 @@ const onJoinPage = path === JOIN_PATH
     </ul>
   </nav>
   <div class="mc-header-actions">
-    <Button href={LOGIN_PATH} variant="text">Log in</Button>
     {!onJoinPage && <Button href={JOIN_PATH}>Join us</Button>}
   </div>
 </header>
