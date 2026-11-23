@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -45,7 +45,7 @@ test('marks and chrome render to static HTML with no script', () => {
       null,
       h(ui.Header, { nav, actions: h(ui.Button, { href: '/go' }, 'Go') }),
       h(ui.MetaCensusMark),
-      h(ui.MetaCensusLockup, { variant: 'gradient' }),
+      h(ui.MetaCensusLockup, { variant: 'solid' }),
       h(ui.MetaCensusArrow),
       h(ui.LogoArrowMorph, { progress: 0.5 }),
       h(ui.Footer, { tagline: 'Tag' }, h('a', { href: '/c' }, 'C')),
@@ -99,7 +99,7 @@ test('the tools render on the server', () => {
       h(ui.Button, { variant: 'secondary' }, 'Save'),
       h(ui.Button, { variant: 'danger' }, 'Delete'),
       h(ui.Button, { variant: 'inverse' }, 'Join'),
-      h(ui.ThemeToggle),
+      h(ui.DisplayControls),
     ),
   )
   for (const c of [
@@ -112,7 +112,7 @@ test('the tools render on the server', () => {
     'mc-button-secondary',
     'mc-button-danger',
     'mc-button-inverse',
-    'mc-theme-toggle',
+    'mc-display',
   ])
     assert.ok(html.includes(c), c)
 })
@@ -162,29 +162,45 @@ test('a Field wires its label, control and error together', () => {
   assert.ok(html.includes('aria-invalid="true"'))
 })
 
-test('ThemeToggle renders the system icon, its name, and what a click does', () => {
-  const html = renderToString(h(ui.ThemeToggle))
-  assert.match(html, /aria-label="Theme: System\. Switch to Light"/)
+test('DisplayControls renders its button and a closed panel of theme and motion', () => {
+  const html = renderToString(h(ui.DisplayControls))
+  assert.match(
+    html,
+    /<button[^>]*aria-label="Display"[^>]*aria-expanded="false"/,
+  )
   assert.match(html, /<svg[^>]*aria-hidden="true"/)
-  assert.match(html, /<span class="mc-theme-toggle-name">System<\/span>/)
+  assert.match(html, /class="mc-display-panel" hidden/)
+  assert.match(html, /<input[^>]*checked=""[^>]*value="system"/)
+  assert.match(html, /Stop animations/)
 })
 
-test('the head script puts a stored theme on the root and never throws', () => {
-  const classes = new Set()
-  const run = (storage) =>
-    new Function('localStorage', 'document', ui.themeScript)(storage, {
-      documentElement: { classList: { add: (c) => classes.add(c) } },
-    })
-  run({ getItem: () => 'dark' })
-  assert.deepEqual([...classes], ['dark'])
-  classes.clear()
-  run({ getItem: () => 'nonsense' })
-  run({
-    getItem: () => {
-      throw new Error('blocked')
-    },
-  })
-  assert.equal(classes.size, 0)
+test('the head script puts the stored display choices on the root and never throws', () => {
+  const run = (storage, reduce = false) => {
+    const classes = new Set()
+    new Function('localStorage', 'document', 'matchMedia', ui.displayScript)(
+      storage,
+      { documentElement: { classList: { add: (c) => classes.add(c) } } },
+      () => ({ matches: reduce }),
+    )
+    return [...classes]
+  }
+  const stored = (values) => ({ getItem: (k) => values[k] ?? null })
+  assert.deepEqual(run(stored({ 'mc-theme': 'dark' })), ['dark'])
+  assert.deepEqual(run(stored({ 'mc-motion': 'still' })), ['still'])
+  assert.deepEqual(run(stored({}), true), ['still'])
+  assert.deepEqual(run(stored({ 'mc-motion': 'full' }), true), [])
+  assert.deepEqual(run(stored({ 'mc-theme': 'nonsense' })), [])
+  assert.deepEqual(
+    run(
+      {
+        getItem: () => {
+          throw new Error('blocked')
+        },
+      },
+      true,
+    ),
+    ['still'],
+  )
 })
 
 test('the morph is the mark at 0 and the arrow at 1', () => {
@@ -274,7 +290,7 @@ test('styles.css prefixes every class and scopes nothing to a site', () => {
   const classes = css.match(/\.[a-z][\w-]*/g) ?? []
   assert.ok(classes.length > 0)
   // `.dark` and `.light` are tokens.css's scheme overrides, read as it reads them.
-  for (const c of classes) assert.match(c, /^\.(mc-|dark$|light$)/)
+  for (const c of classes) assert.match(c, /^\.(mc-|dark$|light$|still$)/)
   assert.doesNotMatch(css, /marketing-site/)
 })
 
@@ -354,14 +370,13 @@ test('styles.css wraps the Header and keeps control labels on one line', () => {
   assert.ok(declares('mc-header', 'flex-wrap: wrap'))
   assert.ok(declares('mc-header-actions', 'flex-wrap: wrap'))
   assert.ok(declares('mc-button', 'white-space: nowrap'))
-  assert.ok(declares('mc-theme-toggle', 'white-space: nowrap'))
 })
 
 test('every role in tokens.css has a Tailwind colour in theme.css and the tailwind3 preset', () => {
   const roles = [
     ...read('../src/css/tokens.css')
       .split('/* Roles. */')[1]
-      .split('/* Gradients')[0]
+      .split('/* Type')[0]
       .matchAll(/^ {2}--mc-([\w-]+):/gm),
   ].map((m) => m[1])
   const theme = read('../src/css/theme.css')
@@ -514,7 +529,7 @@ test('an inverse Button is white on Purple ink, 3:1 on Purple and night, label 4
       styles,
     )[1],
   )
-  // The hero gradient runs Purple bold to Purple mid: both stops hold 3:1.
+  // Both grounds, and Purple mid, hold 3:1.
   for (const ground of ['fill-solid', 'night', 'purple-mid']) {
     const g = resolve(`var(--mc-${ground})`)
     assert.ok(contrast(fill, g) >= 3, ground)
@@ -618,4 +633,28 @@ test('a ContributorCard renders its name at its level, with or without a bio', (
     renderToString(h(ui.ContributorFlavorKey)),
     /<ul aria-label="Contributor flavors" class="mc-flavor-key">/,
   )
+})
+
+test('no mark and no brand token carries a gradient', () => {
+  const sources = {
+    'src/marks/Marks.tsx': read('../src/marks/Marks.tsx'),
+    'src/css/tokens.css': read('../src/css/tokens.css'),
+    ...Object.fromEntries(
+      readdirSync(join(import.meta.dirname, '../marks'))
+        .filter((f) => f.endsWith('.svg'))
+        .map((f) => [`marks/${f}`, read(`../marks/${f}`)]),
+    ),
+  }
+  for (const [name, text] of Object.entries(sources)) {
+    assert.doesNotMatch(text, /gradient/i, name)
+  }
+  for (const variant of ['auto', 'solid', 'reversed']) {
+    for (const C of [
+      ui.MetaCensusMark,
+      ui.MetaCensusLockup,
+      ui.MetaCensusWordmark,
+    ]) {
+      assert.doesNotMatch(renderToString(h(C, { variant })), /gradient/i)
+    }
+  }
 })

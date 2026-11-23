@@ -42,8 +42,9 @@ export {
   type ContributorFlavor,
 } from './people/ContributorCard.js'
 export {
-  ThemeToggle,
-  themeScript,
+  DisplayControls,
+  displayScript,
+  useStill,
   useTheme,
   type Theme,
-} from './tools/theme.js'
+} from './tools/display.js'

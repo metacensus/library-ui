@@ -1,0 +1,8 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "MetaCensus",
+  "url": "https://www.metacensus.org",
+  "logo": "https://raw.githubusercontent.com/metacensus/library-ui/main/marks/mark.svg",
+  "email": "brand@metacensus.io"
+}

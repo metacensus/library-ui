@@ -1,0 +1,12 @@
+---
+import Base from '../layouts/Base.astro'
+import { SECTION_LINKS } from '@metacensus/library-ui/site-links'
+---
+
+<Base title="Layout">
+  <nav slot="section-bar" class="mc-section-bar" aria-label="Sections">
+    {SECTION_LINKS.map((link) => <a href={link.href}>{link.label}</a>)}
+  </nav>
+  <h1>Layout</h1>
+  <div style="height: 3000px"></div>
+</Base>

@@ -24,7 +24,7 @@ export function CiteThisPage({
   className,
   ...props
 }: CiteThisPageProps) {
-  if (!citation.url) return null
+  if (!citation.url?.trim()) return null
   return (
     <details className={cn('mc-cite', className)} {...props}>
       <summary className="mc-cite-summary">Cite this page</summary>

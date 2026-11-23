@@ -1,0 +1,6 @@
+{
+  "/": {
+    "audience": "The browser suite",
+    "purpose": "Compose the shared layout components as a site's layout would"
+  }
+}

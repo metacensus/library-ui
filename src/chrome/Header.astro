@@ -1,0 +1,40 @@
+---
+import { Button, MetaCensusLockup } from '@metacensus/library-ui'
+import {
+  HEADER_LINKS,
+  JOIN_PATH,
+  LOGIN_PATH,
+} from '@metacensus/library-ui/site-links'
+
+const path = Astro.url.pathname.replace(/\/?$/, '/')
+const current = (href: string) =>
+  href === '/' ? path === '/' : path.startsWith(href)
+const onJoinPage = path === JOIN_PATH
+---
+
+<header class="mc-header mc-main-bar">
+  <a href="/" class="mc-header-home"><MetaCensusLockup /></a>
+  <nav class="mc-nav" aria-label="Primary">
+    <input id="mc-nav-toggle" type="checkbox" class="mc-nav-toggle" />
+    <label for="mc-nav-toggle" class="mc-nav-menu">Menu</label>
+    <ul class="mc-nav-links">
+      {
+        HEADER_LINKS.map((link) => (
+          <li>
+            <a
+              href={link.href}
+              aria-current={current(link.href) ? 'page' : undefined}
+            >
+              {link.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+  <div class="mc-header-actions">
+    <Button href={LOGIN_PATH} variant="text">Log in</Button>
+    {!onJoinPage && <Button href={JOIN_PATH}>Join us</Button>}
+  </div>
+</header>
+<slot />
