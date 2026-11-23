@@ -1,3 +1,5 @@
+import { cofounders, contributors } from './stewards.js'
+
 export interface Organization {
   name: string
   /** No trailing slash. */
@@ -5,7 +7,8 @@ export interface Organization {
   logo: string
   email: string
   copyrightYears: string
-  people: readonly { name: string; role: string }[]
+  /** The cofounders, then the contributors; the advisory board is not credited. */
+  people: readonly { name: string; role: string; kind: 'founder' | 'member' }[]
 }
 
 export const organization: Organization = {
@@ -14,5 +17,16 @@ export const organization: Organization = {
   logo: 'https://raw.githubusercontent.com/metacensus/library-ui/main/marks/mark.svg',
   email: 'brand@metacensus.io',
   copyrightYears: '2023–2026',
-  people: [],
+  people: [
+    ...cofounders.map(({ name, role }) => ({
+      name,
+      role,
+      kind: 'founder' as const,
+    })),
+    ...contributors.map(({ name, role }) => ({
+      name,
+      role,
+      kind: 'member' as const,
+    })),
+  ],
 }

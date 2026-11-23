@@ -1,3 +1,18 @@
+/* TEAM */
+Executive Director: Ryan Nelson, PharmD
+Director of Engineering: Jacob Barzee
+Founding Engineer: Erik Forsman, BS
+Web Development: Michael Bonner
+Full-Stack Development: Rob Shirley, MS
+Software Engineer: Caleb Barzee, BS
+Backend Engineer: Tanner Denti, BS
+Software Engineer Intern: Jonas Barzee
+Backend Engineer: Patrick Mower, MS
+Information Systems & Policy: David Houghton, BS
+Clinical Consultant, Evidence-Based Medicine: Jaime Natoli, MPH, MS, CGC
+Pharmacogenomics: Carrie Hoefer, PhD, MBA
+Applied AI Engineer: Michael K.B. Ford
+
 /* SITE */
 Organization: MetaCensus
 URL: https://www.metacensus.org
