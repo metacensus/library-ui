@@ -1,6 +1,6 @@
 # MetaCensus marks
 
-The marks are the primary mark, the wordmark lockup, the wordmark alone, the arrow and the favicon, in [`marks/`](marks). All rights in them are reserved ([`marks/NOTICE.md`](marks/NOTICE.md)); the repository's AGPL-3.0-only license does not cover them. Questions and co-branded approvals: brand@metacensus.io.
+The marks are the primary mark, the wordmark lockup, the wordmark alone, the arrow and the favicon, in [`marks/`](marks). All rights in them are reserved ([`marks/NOTICE.md`](marks/NOTICE.md)); the repository's AGPL-3.0-only license does not cover them. Questions and co-branded approvals: contact@metacensus.org.
 
 ## Permitted use
 
