@@ -4,7 +4,6 @@ export interface Organization {
   url: string
   logo: string
   email: string
-  /** The footer's copyright years. */
   copyrightYears: string
   people: readonly { name: string; role: string }[]
 }

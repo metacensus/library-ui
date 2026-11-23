@@ -11,14 +11,12 @@ export const LEGAL_PATH = '/legal/'
 
 const BLOG_LINK: SiteLink = { label: 'Blog', href: '/blog/' }
 
-/** The Header's links, centred in the main bar on every page. */
 export const HEADER_LINKS: readonly SiteLink[] = [
   { label: 'Why', href: '/' },
   { label: 'Research', href: 'https://research.metacensus.org/' },
   BLOG_LINK,
 ]
 
-/** The front page's argument in four beats, for its section bar. */
 export const SECTION_LINKS: readonly SiteLink[] = [
   { label: 'The problem', href: '/#problem' },
   { label: 'The cost', href: '/#cost' },

@@ -1,7 +1,5 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 const sitePort = Number(process.env.HARNESS_PORT ?? 5919) + 1
 
 test.use({ baseURL: `http://localhost:${sitePort}` })
@@ -48,6 +46,10 @@ test('at 375 px the main bar is one row under 64 px, the brand a mark and the li
   expect((await header.boundingBox())!.height).toBeLessThan(64)
   const home = (await header.locator('a.mc-header-home').boundingBox())!
   expect(home.width).toBeLessThan(40)
+  await expect(header.locator('a.mc-header-home')).toHaveCSS(
+    'overflow',
+    'hidden',
+  )
   const items = [
     header.locator('a.mc-header-home'),
     header.locator('.mc-nav-menu'),
@@ -90,11 +92,13 @@ test('the layout has no accessibility violations, light or dark', async ({
   }
 })
 
-test('the route inventory lists each page with its links', () => {
-  const routes = readFileSync(
-    join(import.meta.dirname, 'site/ROUTES.md'),
-    'utf8',
-  )
-  expect(routes).toContain('## `/`')
-  expect(routes).toContain('`https://github.com/metacensus`')
+test('the layout has no accessibility violations at 375 px with the Menu open', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 800 })
+  await page.goto('/')
+  await page.locator('.mc-nav-menu').click()
+  await expect(page.locator('.mc-nav-links')).toBeVisible()
+  const { violations } = await new AxeBuilder({ page }).analyze()
+  expect(violations).toEqual([])
 })

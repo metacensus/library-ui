@@ -77,32 +77,44 @@
     stroke: var(--mc-purple-mid);
   }
 
-  /* Header: one row, the brand at the start, the links centred, the actions at the end. */
+  /* Header. */
   .mc-header {
     position: relative;
-    z-index: 40;
     display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     align-items: center;
     gap: 0.75rem 1rem;
     padding: 1rem;
     background: var(--mc-ground);
     border-bottom: 1px solid var(--mc-hairline);
   }
-  .mc-header .mc-nav {
-    margin-inline: auto;
+  .mc-header-home {
+    margin-inline-end: auto;
   }
   .mc-header-actions {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.75rem;
   }
-  /* Below 48rem the brand is cropped to its mark, which is LOCKUP_MARK_BOX's
-     27 units on the lockup's 23, and the padding tightens. */
+
+  .mc-main-bar {
+    z-index: 40;
+    flex-wrap: nowrap;
+    gap: 1rem;
+  }
+  .mc-main-bar .mc-nav {
+    margin-inline: auto;
+  }
+  .mc-main-bar .mc-header-home {
+    margin-inline-end: 0;
+  }
   @media (width < 48rem) {
-    .mc-header {
+    .mc-main-bar {
       padding-block: 0.5rem;
     }
-    .mc-header-home {
+    .mc-main-bar .mc-header-home {
       flex: none;
       width: calc(1.5rem * 27 / 23);
       overflow: hidden;
@@ -212,7 +224,7 @@
     background: var(--mc-surface);
     color: var(--mc-ink);
   }
-  .mc-footer-note {
+  .mc-footer-tagline {
     margin: 0.75rem 0 0;
   }
   .mc-footer-columns {

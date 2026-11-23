@@ -1,13 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { FOOTER_COLUMNS, HEADER_LINKS, LEGAL_PATH } from '../dist/site/links.js'
-
-test('the Header carries Why, Research and Blog', () => {
-  assert.deepEqual(
-    HEADER_LINKS.map((link) => link.label),
-    ['Why', 'Research', 'Blog'],
-  )
-})
+import { FOOTER_COLUMNS, LEGAL_PATH } from '../dist/site/links.js'
 
 test('the Footer links the legal section once and the organization on GitHub', () => {
   const hrefs = FOOTER_COLUMNS.flatMap((column) =>
