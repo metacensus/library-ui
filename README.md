@@ -216,7 +216,7 @@ A step is `--mc-<family>-<step>`, as `--mc-purple-bold`. `--mc-white` and `--mc-
 | `--mc-surface`       | grey tint   | grey bold, deeper           |
 | `--mc-hairline`      | grey tint   | grey bold, deepest          |
 | `--mc-ink`           | grey bold   | grey tint                   |
-| `--mc-ink-secondary` | grey mid    | grey mid                    |
+| `--mc-ink-secondary` | grey bold   | grey mid                    |
 | `--mc-line-input`    | grey mid    | grey mid                    |
 | `--mc-series`        | blue bold   | blue mid                    |
 | `--mc-ink-accent`    | purple bold | purple tint                 |
@@ -245,7 +245,7 @@ The default for a chip, pill, badge or callout: the family's tint as the fill, i
 
 ### Slate Mist
 
-`--mc-grey-mid` is for text demoted in place: copy that stops being the subject and becomes context for what replaced it. Copy that is merely secondary starts in Charcoal, which is `--mc-ink`. On white Slate Mist is about 3.2:1, under the 4.5:1 minimum for small text, so `--mc-ink-secondary` is not for small text there. For an outline, use `--mc-line-input`.
+`--mc-grey-mid` is for text demoted in place: copy that stops being the subject and becomes context for what replaced it. Copy that is merely secondary starts in Charcoal, which is `--mc-ink`. `--mc-ink-secondary` is Charcoal in light, where Slate Mist is about 3.2:1 on white, and Slate Mist in dark, where it clears 4.5:1 on the night ground, so it holds small text in both. For an outline, use `--mc-line-input`.
 
 ### Shape (provisional)
 

@@ -29,7 +29,7 @@ export const FOOTER_COLUMNS: readonly {
   links: readonly SiteLink[]
 }[] = [
   {
-    label: 'Sections',
+    label: 'Explore',
     links: [
       ...SECTION_LINKS,
       BLOG_LINK,
@@ -37,7 +37,7 @@ export const FOOTER_COLUMNS: readonly {
     ],
   },
   {
-    label: 'Join us',
+    label: 'Get involved',
     links: [
       { label: 'Join us', href: JOIN_PATH },
       {
@@ -49,8 +49,10 @@ export const FOOTER_COLUMNS: readonly {
     ],
   },
   {
-    label: 'Open source',
-    links: [{ label: 'GitHub', href: 'https://github.com/metacensus' }],
+    label: 'About',
+    links: [
+      { label: 'GitHub', href: 'https://github.com/metacensus' },
+      { label: 'Legal', href: LEGAL_PATH },
+    ],
   },
-  { label: 'About this site', links: [{ label: 'Legal', href: LEGAL_PATH }] },
 ]
