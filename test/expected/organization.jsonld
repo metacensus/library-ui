@@ -4,5 +4,74 @@
   "name": "MetaCensus",
   "url": "https://www.metacensus.org",
   "logo": "https://raw.githubusercontent.com/metacensus/library-ui/main/marks/mark.svg",
-  "email": "brand@metacensus.io"
+  "email": "brand@metacensus.io",
+  "founder": [
+    {
+      "@type": "Person",
+      "name": "Ryan Nelson, PharmD",
+      "jobTitle": "Executive Director"
+    },
+    {
+      "@type": "Person",
+      "name": "Jacob Barzee",
+      "jobTitle": "Director of Engineering"
+    }
+  ],
+  "member": [
+    {
+      "@type": "Person",
+      "name": "Erik Forsman, BS",
+      "jobTitle": "Founding Engineer"
+    },
+    {
+      "@type": "Person",
+      "name": "Michael Bonner",
+      "jobTitle": "Web Development"
+    },
+    {
+      "@type": "Person",
+      "name": "Rob Shirley, MS",
+      "jobTitle": "Full-Stack Development"
+    },
+    {
+      "@type": "Person",
+      "name": "Caleb Barzee, BS",
+      "jobTitle": "Software Engineer"
+    },
+    {
+      "@type": "Person",
+      "name": "Tanner Denti, BS",
+      "jobTitle": "Backend Engineer"
+    },
+    {
+      "@type": "Person",
+      "name": "Jonas Barzee",
+      "jobTitle": "Software Engineer Intern"
+    },
+    {
+      "@type": "Person",
+      "name": "Patrick Mower, MS",
+      "jobTitle": "Backend Engineer"
+    },
+    {
+      "@type": "Person",
+      "name": "David Houghton, BS",
+      "jobTitle": "Information Systems & Policy"
+    },
+    {
+      "@type": "Person",
+      "name": "Jaime Natoli, MPH, MS, CGC",
+      "jobTitle": "Clinical Consultant, Evidence-Based Medicine"
+    },
+    {
+      "@type": "Person",
+      "name": "Carrie Hoefer, PhD, MBA",
+      "jobTitle": "Pharmacogenomics"
+    },
+    {
+      "@type": "Person",
+      "name": "Michael K.B. Ford",
+      "jobTitle": "Applied AI Engineer"
+    }
+  ]
 }

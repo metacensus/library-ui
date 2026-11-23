@@ -1,5 +1,18 @@
 import { organization as org } from './facts.js'
 
+function person(kind: 'founder' | 'member') {
+  const people = org.people.filter((p) => p.kind === kind)
+  return people.length > 0
+    ? {
+        [kind]: people.map(({ name, role }) => ({
+          '@type': 'Person',
+          name,
+          jobTitle: role,
+        })),
+      }
+    : {}
+}
+
 export function organizationJsonLd() {
   return {
     '@context': 'https://schema.org',
@@ -8,13 +21,8 @@ export function organizationJsonLd() {
     url: org.url,
     logo: org.logo,
     email: org.email,
-    ...(org.people.length > 0 && {
-      employee: org.people.map(({ name, role }) => ({
-        '@type': 'Person',
-        name,
-        jobTitle: role,
-      })),
-    }),
+    ...person('founder'),
+    ...person('member'),
   }
 }
 

@@ -126,7 +126,7 @@ export default defineConfig({
 
 ## Organization facts
 
-`@metacensus/library-ui/organization` holds the organization's name, URL, logo, contact address and the people credited as plain `organization` data, with no Astro or React, and what every site derives from it: `organizationJsonLd()`, `organizationJsonLdScript()` and `humansTxt()`.
+`@metacensus/library-ui/organization` holds the organization's name, URL, logo, contact address and the people credited as plain `organization` data, with no Astro or React, and the stewards (`cofounders`, `contributors` and `advisoryBoard`: each person's name, role, portrait file, link and flavor) from which the people credited are built (cofounders as `founder`, contributors as `member`; the advisory board is not credited), and what every site derives from it: `organizationJsonLd()`, `organizationJsonLdScript()` and `humansTxt()`.
 
 In an Astro layout's `<head>`:
 
