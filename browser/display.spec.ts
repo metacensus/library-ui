@@ -46,13 +46,17 @@ test('hover, focus or a tap opens the panel; Escape, leaving or a tap elsewhere 
 
   await button.hover()
   await expect(panel).toBeVisible()
+  await panel.getByRole('radio', { name: 'Light' }).hover()
+  await expect(panel).toBeVisible()
   await page.mouse.move(400, 100)
   await expect(panel).toBeHidden()
 
   await button.focus()
   await expect(panel).toBeVisible()
+  await panel.getByRole('radio', { name: 'System' }).focus()
   await page.keyboard.press('Escape')
   await expect(panel).toBeHidden()
+  await expect(button).toBeFocused()
   const elsewhere = page.getByRole('link', { name: 'Elsewhere' })
   await elsewhere.focus()
   await button.focus()
@@ -136,23 +140,34 @@ test('every control is reachable by Tab and its focus ring shows on both grounds
       document.body.style.color = 'var(--mc-ink)'
     })
     await page.getByRole('button', { name: 'Display' }).focus()
-    const names: string[] = []
-    for (let i = 0; i < 5; i++) {
+    for (const type of ['radio', 'checkbox']) {
       await page.keyboard.press('Tab')
       const ring = await page.evaluate(() => {
-        const el = document.activeElement!
+        const el = document.activeElement as HTMLInputElement
         const s = getComputedStyle(el)
-        return [
-          el.getAttribute('type') ?? el.tagName,
-          s.outlineStyle,
-          s.outlineWidth,
-        ]
+        return [el.type, s.outlineStyle, s.outlineWidth]
       })
-      if (ring[0] === 'A') break
-      names.push(ring[0]!)
-      expect(ring.slice(1), `${scheme} ${ring[0]}`).toEqual(['solid', '2px'])
+      expect(ring, scheme).toEqual([type, 'solid', '2px'])
     }
-    expect(names).toEqual(['radio', 'checkbox'])
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
   }
+})
+
+test('under .still the moving halo is hidden and the still one shown', async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.evaluate(() => {
+    const { ui, h, mount } = window.harness
+    mount(h('main', null, h(ui.MetaCensusMark), h(ui.DisplayControls)))
+  })
+  const shown = (layer: string) =>
+    page
+      .locator(`.${layer}`)
+      .evaluate((el) => getComputedStyle(el).display !== 'none')
+  expect(await shown('mc-halo-moving')).toBe(true)
+  await page.getByRole('button', { name: 'Display' }).focus()
+  await page.getByRole('checkbox', { name: 'Stop animations' }).check()
+  expect(await shown('mc-halo-moving')).toBe(false)
+  expect(await shown('mc-halo-still')).toBe(true)
 })

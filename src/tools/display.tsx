@@ -1,9 +1,4 @@
-import {
-  useEffect,
-  useState,
-  useSyncExternalStore,
-  type ReactNode,
-} from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { cn } from './cn.js'
 import { Checkbox, RadioGroup } from './form.js'
 
@@ -27,7 +22,6 @@ function subscribe(listener: () => void) {
   return () => void listeners.delete(listener)
 }
 
-/** Keeps `value` under `key`, or nothing when it is the default. */
 function store(key: string, value: string | null) {
   try {
     if (value === null) localStorage.removeItem(key)
@@ -73,31 +67,18 @@ function writeStill(still: boolean) {
   listeners.forEach((listener) => listener())
 }
 
-/** Whether animations are stopped, and a setter. `still` is on `<html>` when
- *  the viewer stopped them or the OS prefers reduced motion, so a page styles
- *  its own animations from `:root.still` and no second signal. Renders `false`
- *  on the server. */
+/** Whether animations are stopped, and a setter; `:root.still` is the same
+ *  state for CSS. Renders `false` on the server. */
 export function useStill() {
   const still = useSyncExternalStore(subscribe, readStill, () => false)
   return { still, setStill: writeStill }
 }
 
-const THEMES: Theme[] = ['system', 'light', 'dark']
-
-const NAMES: Record<Theme, string> = {
-  system: 'System',
-  light: 'Light',
-  dark: 'Dark',
-}
-
-/** Lucide's `sliders-horizontal` on a 24-unit square, under the ISC license in
- *  LICENSES/ISC.txt. */
-const ICON: ReactNode = (
-  <>
-    <path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3" />
-    <path d="M14 2v4M8 10v4M16 18v4" />
-  </>
-)
+const THEME_OPTIONS: { value: Theme; label: string }[] = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+]
 
 /** A round button fixed at the viewport's bottom-left corner. Hover, focus or a
  *  tap opens a panel above it with the theme and a switch that stops
@@ -107,6 +88,7 @@ export function DisplayControls({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme()
   const { still, setStill } = useStill()
   const [open, setOpen] = useState(false)
+  const button = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (!open) return
@@ -129,15 +111,22 @@ export function DisplayControls({ className }: { className?: string }) {
         if (e.relatedTarget && !e.currentTarget.contains(e.relatedTarget))
           setOpen(false)
       }}
-      onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
+      onKeyDown={(e) => {
+        if (e.key !== 'Escape') return
+        button.current?.focus()
+        setOpen(false)
+      }}
     >
       <button
+        ref={button}
         type="button"
         className="mc-display-button"
         aria-label="Display"
         aria-expanded={open}
         onClick={() => setOpen(true)}
       >
+        {/* Lucide's `sliders-horizontal`, under the ISC license in
+            LICENSES/ISC.txt. */}
         <svg
           viewBox="0 0 24 24"
           fill="none"
@@ -147,14 +136,15 @@ export function DisplayControls({ className }: { className?: string }) {
           strokeLinejoin="round"
           aria-hidden="true"
         >
-          {ICON}
+          <path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3" />
+          <path d="M14 2v4M8 10v4M16 18v4" />
         </svg>
       </button>
       <div className="mc-display-panel" hidden={!open}>
         <RadioGroup
           legend="Theme"
           name="mc-display-theme"
-          options={THEMES.map((value) => ({ value, label: NAMES[value] }))}
+          options={THEME_OPTIONS}
           value={theme}
           onChange={(value) => setTheme(value as Theme)}
         />

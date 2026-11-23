@@ -47,8 +47,7 @@
   .mc-halo-still {
     display: none;
   }
-  /* `.still` is on the root when animations are stopped, by the viewer or the
-     OS: displayScript sets it. */
+  /* `.still`: animations stopped, as displayScript sets it. */
   :root.still .mc-halo-moving {
     display: none;
   }
@@ -398,6 +397,14 @@
     background: var(--mc-card);
     color: var(--mc-ink);
     box-shadow: 0 2px 8px color-mix(in srgb, var(--mc-ink) 20%, transparent);
+  }
+  /* Bridges the gap to the button so the pointer crosses it without leaving. */
+  .mc-display-panel::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: 100%;
+    height: 0.5rem;
   }
   .mc-display-panel[hidden] {
     display: none;
