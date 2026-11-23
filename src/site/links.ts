@@ -3,7 +3,6 @@ export interface SiteLink {
   href: string
 }
 
-export const LOGIN_PATH = '/log-in'
 export const JOIN_PATH = '/partner/'
 
 /** The legal pages' section, which has its own sub-navigation. */
@@ -45,7 +44,6 @@ export const FOOTER_COLUMNS: readonly {
         href: '/partner/?interest=early-access',
       },
       { label: 'Careers', href: '/careers/' },
-      { label: 'Log in', href: LOGIN_PATH },
     ],
   },
   {

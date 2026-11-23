@@ -14,13 +14,11 @@ test('the main bar has the brand at the left, links centred, actions at the righ
   const header = page.locator('header.mc-header')
   const home = await box(header.locator('a.mc-header-home'))
   const nav = await box(header.getByRole('navigation', { name: 'Primary' }))
-  const login = await box(header.getByRole('link', { name: 'Log in' }))
   const join = await box(header.getByRole('link', { name: 'Join us' }))
   const links = header.getByRole('navigation', { name: 'Primary' })
   await expect(links.getByRole('link')).toHaveText(['Why', 'Research', 'Blog'])
   expect(home.x).toBeLessThan(nav.x)
-  expect(nav.x + nav.width).toBeLessThan(login.x)
-  expect(login.x).toBeLessThan(join.x)
+  expect(nav.x + nav.width).toBeLessThan(join.x)
   expect(Math.abs(nav.x + nav.width / 2 - 640)).toBeLessThan(120)
   expect(join.x + join.width).toBeGreaterThan(1200)
 })
@@ -53,7 +51,6 @@ test('at 375 px the main bar is one row under 64 px, the brand a mark and the li
   const items = [
     header.locator('a.mc-header-home'),
     header.locator('.mc-nav-menu'),
-    header.getByRole('link', { name: 'Log in' }),
     header.getByRole('link', { name: 'Join us' }),
   ]
   const boxes = await Promise.all(items.map((i) => i.boundingBox()))
