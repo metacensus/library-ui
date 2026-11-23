@@ -63,7 +63,7 @@ In `.astro` files, pass `Header`'s `nav` and `actions` as named slots; JSX props
 
 ## Organization facts
 
-`@metacensus/library-ui/organization` holds the organization's name, URL, logo, contact address and the people credited as plain `organization` data, with no Astro or React, and the two outputs every site derives from it: `organizationJsonLd()` and `humansTxt()`.
+`@metacensus/library-ui/organization` holds the organization's name, URL, logo, contact address and the people credited as plain `organization` data, with no Astro or React, and what every site derives from it: `organizationJsonLd()`, `organizationJsonLdScript()` and `humansTxt()`.
 
 In an Astro layout's `<head>`:
 
@@ -79,13 +79,11 @@ import OrganizationJsonLd from '@metacensus/library-ui/OrganizationJsonLd.astro'
 In React, render the same function's output:
 
 ```tsx
-import { organizationJsonLd } from '@metacensus/library-ui/organization'
+import { organizationJsonLdScript } from '@metacensus/library-ui/organization'
 
 ;<script
   type="application/ld+json"
-  dangerouslySetInnerHTML={{
-    __html: JSON.stringify(organizationJsonLd()).replace(/</g, '\\u003c'),
-  }}
+  dangerouslySetInnerHTML={{ __html: organizationJsonLdScript() }}
 />
 ```
 

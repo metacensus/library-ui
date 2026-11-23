@@ -1,8 +1,5 @@
 ---
-import { organizationJsonLd } from '@metacensus/library-ui/organization'
-
-// `<` is escaped so no value can close the script element.
-const json = JSON.stringify(organizationJsonLd()).replace(/</g, '\\u003c')
+import { organizationJsonLdScript } from '@metacensus/library-ui/organization'
 ---
 
-<script is:inline type="application/ld+json" set:html={json} />
+<script is:inline type="application/ld+json" set:html={organizationJsonLdScript()} />

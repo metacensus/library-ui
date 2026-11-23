@@ -1,7 +1,6 @@
-import { organization, type Organization } from './facts.js'
+import { organization as org } from './facts.js'
 
-/** The organization's schema.org JSON-LD. */
-export function organizationJsonLd(org: Organization = organization) {
+export function organizationJsonLd() {
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
@@ -9,20 +8,31 @@ export function organizationJsonLd(org: Organization = organization) {
     url: org.url,
     logo: org.logo,
     email: org.email,
-    employee: org.people.map(({ name, role }) => ({
-      '@type': 'Person',
-      name,
-      jobTitle: role,
-    })),
+    ...(org.people.length > 0 && {
+      employee: org.people.map(({ name, role }) => ({
+        '@type': 'Person',
+        name,
+        jobTitle: role,
+      })),
+    }),
   }
 }
 
-/** The organization's `humans.txt`, ending in a newline. */
-export function humansTxt(org: Organization = organization) {
+/** The JSON-LD as the body of a `<script>`: `<` is escaped so no value can close it. */
+export function organizationJsonLdScript() {
+  return JSON.stringify(organizationJsonLd()).replace(/</g, '\\u003c')
+}
+
+/** Ends in a newline. */
+export function humansTxt() {
   return [
-    '/* TEAM */',
-    ...org.people.map(({ name, role }) => `${role}: ${name}`),
-    '',
+    ...(org.people.length > 0
+      ? [
+          '/* TEAM */',
+          ...org.people.map(({ name, role }) => `${role}: ${name}`),
+          '',
+        ]
+      : []),
     '/* SITE */',
     `Organization: ${org.name}`,
     `URL: ${org.url}`,
