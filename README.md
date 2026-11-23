@@ -61,6 +61,44 @@ import { Header, Nav, Button, displayScript } from '@metacensus/library-ui'
 
 In `.astro` files, pass `Header`'s `nav` and `actions` as named slots; JSX props there fail the build.
 
+## Organization facts
+
+`@metacensus/library-ui/organization` holds the organization's name, URL, logo, contact address and the people credited as plain `organization` data, with no Astro or React, and what every site derives from it: `organizationJsonLd()`, `organizationJsonLdScript()` and `humansTxt()`.
+
+In an Astro layout's `<head>`:
+
+```astro
+---
+import OrganizationJsonLd from '@metacensus/library-ui/OrganizationJsonLd.astro'
+---
+<head>
+  <OrganizationJsonLd />
+</head>
+```
+
+In React, render the same function's output:
+
+```tsx
+import { organizationJsonLdScript } from '@metacensus/library-ui/organization'
+
+;<script
+  type="application/ld+json"
+  dangerouslySetInnerHTML={{ __html: organizationJsonLdScript() }}
+/>
+```
+
+`humans.txt` is an Astro endpoint, built to `/humans.txt`:
+
+```ts
+// src/pages/humans.txt.ts
+import { humansTxt } from '@metacensus/library-ui/organization'
+
+export const GET = () =>
+  new Response(humansTxt(), {
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  })
+```
+
 ## PDF
 
 `@metacensus/library-ui/pdf` is a separate entry point, so the main one never loads pdf.js.
